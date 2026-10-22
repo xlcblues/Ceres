@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ceres Brand Board</title>
+<style>
+:root{--green:#173B2F;--deep:#10251C;--gold:#E3A63C;--paper:#F4F0E6;--ink:#101D17;--sage:#6F8B7B}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI Variable Text","Segoe UI",Inter,sans-serif;background:var(--paper);color:var(--ink)}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:32px;padding:34px 40px;background:var(--deep);color:#F7F3E9}
+.hero h1{margin:0;font-size:30px;font-weight:650}
+.hero p{margin:8px 0 0;color:#BFD0C4;font-size:14px}
+.hero img{height:74px}
+.section{padding:28px 40px;border-bottom:1px solid rgba(16,29,23,.14)}
+.kicker{margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5C7164}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.tile{min-height:150px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(16,29,23,.14);border-radius:8px;background:#FBF8F1}
+.tile.dark{background:var(--deep);border-color:rgba(247,243,233,.16)}
+.tile img{max-width:90%;max-height:92px}
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.swatch{border:1px solid rgba(16,29,23,.12);border-radius:8px;overflow:hidden;background:#fff}
+.swatch .chip{height:76px}
+.swatch .meta{padding:10px 12px}
+.swatch .name{font-size:12px;font-weight:650}
+.swatch .hex{font-size:11px;color:#647268;margin-top:3px}
+.type-row{display:grid;grid-template-columns:1.2fr 1fr;gap:28px}
+.type-row .display{font-size:44px;font-weight:640}
+.type-row .body{color:#4C5B50;line-height:1.65}
+.ui-wrap{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.ui{border-radius:8px;overflow:hidden;box-shadow:0 10px 24px rgba(16,29,23,.10)}
+.ui .bar{display:flex;align-items:center;gap:10px;height:30px;padding:0 12px;border-bottom:1px solid rgba(16,29,23,.12)}
+.ui .dots{display:flex;gap:4px}
+.ui .dots i{width:7px;height:7px;border-radius:50%;background:rgba(16,29,23,.24)}
+.ui .title{font-size:12px;font-weight:600;color:#3E4F44}
+.app{display:grid;grid-template-columns:56px 1fr;min-height:220px}
+.light .app{background:#FBF8F1}
+.light .rail{background:#F1EDE2;border-right:1px solid rgba(16,29,23,.10);display:flex;flex-direction:column;align-items:center;padding-top:16px;gap:14px}
+.rail .logo{width:28px;height:28px}
+.rail .dot{width:22px;height:22px;border-radius:7px;background:rgba(23,59,47,.12)}
+.main{padding:18px 22px}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.head strong{font-size:14px}
+.pill{font-size:11px;padding:4px 10px;border-radius:999px;background:rgba(227,166,60,.18);color:#6E4E13;font-weight:650}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid rgba(16,29,23,.10);border-radius:8px;padding:10px 12px}
+.stat .k{font-size:10px;color:#6C7A70}
+.stat .v{font-size:18px;font-weight:660;margin-top:3px}
+.chart{background:#fff;border:1px solid rgba(16,29,23,.10);border-radius:8px;padding:10px 12px;display:flex;gap:14px;align-items:center}
+.ring-wrap{position:relative;width:74px;height:74px;flex:0 0 auto}
+.ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:680}
+.ring-label small{font-size:8px;color:#7B887D;font-weight:500}
+.sparkline{flex:1;min-width:0}
+.dark .app{background:var(--deep);color:#EAF1E8}
+.dark .rail{background:#0C1D16;border-right:1px solid rgba(247,243,233,.10)}
+.dark .rail .dot{background:rgba(234,241,232,.12)}
+.dark .pill{background:rgba(227,166,60,.20);color:#F1C87D}
+.dark .stat{background:rgba(255,255,255,.04);border-color:rgba(247,243,233,.12)}
+.dark .stat .k{color:#9CAFA0}
+.dark .chart{background:rgba(255,255,255,.04);border-color:rgba(247,243,233,.12)}
+.dark .ring-label small{color:#9CAFA0}
+.footer{padding:18px 40px;font-size:12px;color:#66756A}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div>
+    <h1>Ceres</h1>
+    <p>Weight &amp; wellness, on your own rhythm.</p>
+  </div>
+  <img src="logo-horizontal-dark.svg" alt="Ceres logo on dark">
+</div>
+<div class="section">
+  <p class="kicker">Logo system</p>
+  <div class="row">
+    <div class="tile"><img src="logo-mark.svg" alt="Mark on light"></div>
+    <div class="tile dark"><img src="logo-mark-dark.svg" alt="Mark on dark"></div>
+    <div class="tile"><img src="logo-horizontal-light.svg" alt="Horizontal on light"></div>
+    <div class="tile dark"><img src="logo-horizontal-dark.svg" alt="Horizontal on dark"></div>
+  </div>
+</div>
+<div class="section">
+  <p class="kicker">Color palette</p>
+  <div class="swatches">
+    <div class="swatch"><div class="chip" style="background:#173B2F"></div><div class="meta"><div class="name">Ceres Green</div><div class="hex">#173B2F</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#E3A63C"></div><div class="meta"><div class="name">Harvest Gold</div><div class="hex">#E3A63C</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#F4F0E6"></div><div class="meta"><div class="name">Warm Paper</div><div class="hex">#F4F0E6</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#101D17"></div><div class="meta"><div class="name">Ink</div><div class="hex">#101D17</div></div></div>
+    <div class="swatch"><div class="chip" style="background:#6F8B7B"></div><div class="meta"><div class="name">Sage</div><div class="hex">#6F8B7B</div></div></div>
+  </div>
+</div>
+<div class="section">
+  <p class="kicker">Typography &amp; rhythm</p>
+  <div class="type-row">
+    <div>
+      <div class="display">Today, lighter.</div>
+      <div style="font-size:13px;color:#66756A;margin-top:10px">Segoe UI Variable / Inter · 640 weight · 0 letter spacing</div>
+    </div>
+    <div class="body">Interface type stays quiet and precise. Display type is reserved for goals and numbers. Space is generous but information stays dense enough for daily scanning.</div>
+  </div>
+</div>
+<div class="section">
+  <p class="kicker">UI style from the logo</p>
+  <div class="ui-wrap">
+    <div class="ui light">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Ceres · Light</span></div>
+      <div class="app">
+        <div class="rail">
+          <svg class="logo" viewBox="0 0 512 512"><path d="M371.7 118.1 A180 180 0 1 0 371.7 393.9" fill="none" stroke="#173B2F" stroke-width="56" stroke-linecap="round"/><circle cx="256" cy="256" r="42" fill="#E3A63C"/></svg>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="main">
+          <div class="head"><strong>Today</strong><span class="pill">-0.6 kg this week</span></div>
+          <div class="stats">
+            <div class="stat"><div class="k">Weight</div><div class="v">72.4</div></div>
+            <div class="stat"><div class="k">Goal</div><div class="v">68.0</div></div>
+            <div class="stat"><div class="k">Streak</div><div class="v">12d</div></div>
+          </div>
+          <div class="chart">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 74 74" width="74" height="74">
+                <circle cx="37" cy="37" r="30" fill="none" stroke="#E5E2D6" stroke-width="7"/>
+                <circle cx="37" cy="37" r="30" fill="none" stroke="#173B2F" stroke-width="7" stroke-linecap="round" stroke-dasharray="158 188" transform="rotate(-90 37 37)"/>
+              </svg>
+              <div class="ring-label">74%<small>to goal</small></div>
+            </div>
+            <svg class="sparkline" viewBox="0 0 190 58">
+              <path d="M2 30 L32 24 L62 36 L92 18 L122 26 L152 12 L186 8" fill="none" stroke="#173B2F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 30 L32 24 L62 36 L92 18 L122 26 L152 12 L186 8 L186 58 L2 58 Z" fill="rgba(23,59,47,0.08)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ui dark">
+      <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span class="title">Ceres · Dark</span></div>
+      <div class="app">
+        <div class="rail">
+          <svg class="logo" viewBox="0 0 512 512"><path d="M371.7 118.1 A180 180 0 1 0 371.7 393.9" fill="none" stroke="#EAF1E8" stroke-width="56" stroke-linecap="round"/><circle cx="256" cy="256" r="42" fill="#E3A63C"/></svg>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="main">
+          <div class="head"><strong>Today</strong><span class="pill">-0.6 kg this week</span></div>
+          <div class="stats">
+            <div class="stat"><div class="k">Weight</div><div class="v">72.4</div></div>
+            <div class="stat"><div class="k">Goal</div><div class="v">68.0</div></div>
+            <div class="stat"><div class="k">Streak</div><div class="v">12d</div></div>
+          </div>
+          <div class="chart">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 74 74" width="74" height="74">
+                <circle cx="37" cy="37" r="30" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="7"/>
+                <circle cx="37" cy="37" r="30" fill="none" stroke="#E3A63C" stroke-width="7" stroke-linecap="round" stroke-dasharray="158 188" transform="rotate(-90 37 37)"/>
+              </svg>
+              <div class="ring-label">74%<small>to goal</small></div>
+            </div>
+            <svg class="sparkline" viewBox="0 0 190 58">
+              <path d="M2 30 L32 24 L62 36 L92 18 L122 26 L152 12 L186 8" fill="none" stroke="#E3A63C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 30 L32 24 L62 36 L92 18 L122 26 L152 12 L186 8 L186 58 L2 58 Z" fill="rgba(227,166,60,0.10)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="footer">Ceres brand board · assets/brand · 2026</div>
+</body>
+</html>

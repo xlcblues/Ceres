@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 128" width="480" height="128" role="img" aria-label="Ceres logo">
+  <g transform="translate(18 22)">
+    <path d="M41.6 10.9 A20 20 0 1 0 41.6 61.1" fill="none" stroke="#EAF1E8" stroke-width="6.2" stroke-linecap="round"/>
+    <circle cx="28.5" cy="36" r="4.7" fill="#E3A63C"/>
+  </g>
+  <text x="108" y="80" font-family="'Segoe UI Variable Display','Segoe UI',Inter,sans-serif" font-size="52" font-weight="600" letter-spacing="2" fill="#F7F3E9">Ceres</text>
+</svg>
