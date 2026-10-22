@@ -21,7 +21,8 @@ pub fn run() {
             commands::save_goal,
             commands::list_entries,
             commands::upsert_entry,
-            commands::delete_entry
+            commands::delete_entry,
+            commands::export_entries
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

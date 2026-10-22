@@ -8,8 +8,13 @@ import {
 } from "react";
 import {
   Activity,
+  Award,
+  Bell,
   CalendarDays,
   Check,
+  Download,
+  FileJson,
+  FileSpreadsheet,
   LayoutDashboard,
   Monitor,
   Moon,
@@ -25,9 +30,11 @@ import {
   X,
 } from "lucide-react";
 import "./App.css";
+import { TrendChart } from "./components/TrendChart";
 import { useTheme, type ThemePreference } from "./theme";
 import {
   deleteEntry,
+  exportEntries,
   getGoal,
   listEntries,
   readUnit,
@@ -35,6 +42,7 @@ import {
   saveUnit,
   upsertEntry,
   type Entry,
+  type ExportFormat,
   type Goal,
   type Unit,
 } from "./lib/api";
@@ -48,10 +56,15 @@ import {
 } from "./lib/date";
 import {
   computeEntryStats,
+  computeMilestones,
+  computeTrendStats,
   formatSignedChange,
   formatWeight,
   fromDisplayWeight,
   toDisplayWeight,
+  RANGE_LABELS,
+  sliceByRange,
+  type RangeKey,
 } from "./lib/stats";
 
 type View = "today" | "trend" | "records" | "settings";
@@ -708,24 +721,54 @@ function TodayView({
   );
 }
 
-function TrendView({ entries, unit }: { entries: Entry[]; unit: Unit }) {
-  const stats = useMemo(() => computeEntryStats(entries, null), [entries]);
-  const chartEntries = useMemo(
-    () =>
-      [...entries]
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(-30),
-    [entries],
+function TrendView({
+  entries,
+  goal,
+  unit,
+  onGoToday,
+}: {
+  entries: Entry[];
+  goal: Goal | null;
+  unit: Unit;
+  onGoToday: () => void;
+}) {
+  const [range, setRange] = useState<RangeKey>("30");
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+
+  const rangeEntries = useMemo(
+    () => sliceByRange(entries, range),
+    [entries, range],
   );
-  const windowChange =
-    chartEntries.length >= 2
-      ? Number(
-          (
-            chartEntries[chartEntries.length - 1].weight -
-            chartEntries[0].weight
-          ).toFixed(1),
-        )
-      : null;
+  const stats = useMemo(
+    () => computeTrendStats(rangeEntries),
+    [rangeEntries],
+  );
+  const insights = useMemo(
+    () => computeMilestones(entries, goal),
+    [entries, goal],
+  );
+
+  const today = todayKey();
+  const recordedToday = entries.some((entry) => entry.date === today);
+  const latestEntry = [...entries].sort((a, b) =>
+    b.date.localeCompare(a.date),
+  )[0];
+  const lost =
+    insights.totalChange != null ? Math.max(0, -insights.totalChange) : 0;
+
+  const handleExport = async (format: ExportFormat) => {
+    setExporting(format);
+    setExportStatus(null);
+    try {
+      const result = await exportEntries(format);
+      setExportStatus(`已导出：${result}`);
+    } catch (caught) {
+      setExportStatus(`导出失败：${String(caught)}`);
+    } finally {
+      setExporting(null);
+    }
+  };
 
   if (!entries.length) {
     return (
@@ -739,7 +782,20 @@ function TrendView({ entries, unit }: { entries: Entry[]; unit: Unit }) {
 
   return (
     <>
-      <div className="stat-grid three">
+      {!recordedToday ? (
+        <div className="reminder-banner">
+          <Bell size={16} />
+          <div>
+            <strong>今天还没有记录</strong>
+            <span>最新记录：{formatChineseDate(latestEntry.date)}</span>
+          </div>
+          <button className="primary-button" onClick={onGoToday}>
+            去记录
+          </button>
+        </div>
+      ) : null}
+
+      <div className="stat-grid">
         <StatCard
           label="平均体重"
           value={stats.average != null ? formatWeight(stats.average, unit) : "—"}
@@ -759,31 +815,175 @@ function TrendView({ entries, unit }: { entries: Entry[]; unit: Unit }) {
           label="最低体重"
           value={stats.lowest != null ? formatWeight(stats.lowest, unit) : "—"}
           unit={unit}
-          hint="近期最低"
+          hint="区间最低"
           icon={<Target size={16} />}
         />
+        <StatCard
+          label="区间变化"
+          value={stats.change != null ? formatSignedChange(stats.change, unit) : "—"}
+          unit={unit}
+          hint="首末差值"
+          icon={<Award size={16} />}
+        />
       </div>
+
       <section className="panel chart-panel">
         <div className="panel-head">
           <div>
-            <p className="panel-kicker">最近 {chartEntries.length} 条</p>
+            <p className="panel-kicker">区间曲线</p>
             <h2>体重趋势</h2>
           </div>
-          {windowChange != null ? (
-            <span className={`change-pill ${changeClass(windowChange)}`}>
-              {formatSignedChange(windowChange, unit)} {unit}
-            </span>
-          ) : null}
-        </div>
-        <div className="chart-body">
-          <Sparkline entries={chartEntries} />
-          <div className="chart-axis">
-            <span>{formatChineseDate(chartEntries[0].date)}</span>
-            <span>
-              {formatChineseDate(chartEntries[chartEntries.length - 1].date)}
-            </span>
+          <div className="segmented">
+            {RANGE_LABELS.map((option) => (
+              <button
+                key={option.key}
+                className={range === option.key ? "active" : ""}
+                onClick={() => setRange(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
+        {rangeEntries.length >= 2 ? (
+          <>
+            <TrendChart entries={rangeEntries} unit={unit} />
+            <div className="chart-foot">
+              {stats.weekOverWeek != null ? (
+                <span
+                  className={`change-pill ${changeClass(stats.weekOverWeek)}`}
+                >
+                  近 7 日 {formatSignedChange(stats.weekOverWeek, unit)} {unit}
+                </span>
+              ) : null}
+              <span className="chart-hint">7 日移动平均以虚线显示</span>
+            </div>
+          </>
+        ) : (
+          <EmptyState
+            icon={Activity}
+            title="该区间记录不足"
+            description="选择更大的区间，或先录入更多记录"
+          />
+        )}
+      </section>
+
+      <div className="insight-grid">
+        <section className="panel streak-panel">
+          <div className="panel-head">
+            <div>
+              <p className="panel-kicker">习惯</p>
+              <h2>连续记录</h2>
+            </div>
+            <Activity size={18} className="panel-icon" />
+          </div>
+          <div className="streak-body">
+            <div className="streak-number">
+              <strong>{insights.streakDays}</strong>
+              <span>天</span>
+            </div>
+            <div className="streak-meta">
+              <div>
+                <span>最长连续</span>
+                <strong>{insights.longestStreak} 天</strong>
+              </div>
+              <div>
+                <span>累计记录</span>
+                <strong>{insights.daysTracked} 条</strong>
+              </div>
+              <div>
+                <span>累计变化</span>
+                <strong>
+                  {insights.totalChange != null
+                    ? `${formatSignedChange(insights.totalChange, unit)} ${unit}`
+                    : "—"}
+                </strong>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="panel milestone-panel">
+          <div className="panel-head">
+            <div>
+              <p className="panel-kicker">里程碑</p>
+              <h2>减重节点</h2>
+            </div>
+            <Award size={18} className="panel-icon" />
+          </div>
+          <div className="milestone-list">
+            {insights.milestones.map((milestone) => {
+              const progress = Math.min(
+                1,
+                lost / milestone.threshold,
+              );
+              return (
+                <div
+                  key={milestone.threshold}
+                  className={
+                    milestone.reached ? "milestone-row reached" : "milestone-row"
+                  }
+                >
+                  <div className="milestone-head">
+                    <span>
+                      减重 {formatWeight(milestone.threshold, unit)} {unit}
+                    </span>
+                    {milestone.reached ? (
+                      <em>
+                        <Check size={12} />
+                        {milestone.date
+                          ? formatChineseDate(milestone.date)
+                          : "已达成"}
+                      </em>
+                    ) : milestone.remaining != null ? (
+                      <em>
+                        还差 {formatWeight(milestone.remaining, unit)} {unit}
+                      </em>
+                    ) : null}
+                  </div>
+                  <div className="milestone-track">
+                    <div
+                      className="milestone-fill"
+                      style={{ width: `${progress * 100}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+
+      <section className="panel export-panel">
+        <div className="panel-head">
+          <div>
+            <p className="panel-kicker">数据</p>
+            <h2>导出记录</h2>
+          </div>
+          <Download size={18} className="panel-icon" />
+        </div>
+        <div className="export-actions">
+          <button
+            className="secondary-button"
+            disabled={exporting !== null}
+            onClick={() => void handleExport("csv")}
+          >
+            <FileSpreadsheet size={15} />
+            CSV
+          </button>
+          <button
+            className="secondary-button"
+            disabled={exporting !== null}
+            onClick={() => void handleExport("json")}
+          >
+            <FileJson size={15} />
+            JSON
+          </button>
+        </div>
+        {exportStatus ? (
+          <p className="export-status">{exportStatus}</p>
+        ) : (
+          <p className="form-hint">导出全部记录，桌面端保存到应用数据目录</p>
+        )}
       </section>
     </>
   );
@@ -1250,7 +1450,12 @@ function App() {
                 />
               ) : null}
               {activeView === "trend" ? (
-                <TrendView entries={entries} unit={unit} />
+                <TrendView
+                  entries={entries}
+                  goal={goal}
+                  unit={unit}
+                  onGoToday={() => setActiveView("today")}
+                />
               ) : null}
               {activeView === "records" ? (
                 <RecordsView

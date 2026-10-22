@@ -162,3 +162,63 @@ export function readUnit(): Unit {
 export function saveUnit(unit: Unit) {
   localStorage.setItem(UNIT_KEY, unit);
 }
+
+export type ExportFormat = "csv" | "json";
+
+function renderLocalCsv(entries: Entry[]): string {
+  const lines = [
+    "date,weight_kg,body_fat,note,created_at,updated_at",
+    ...entries.map((entry) => {
+      const fields = [
+        entry.date,
+        String(entry.weight),
+        entry.body_fat != null ? String(entry.body_fat) : "",
+        entry.note ?? "",
+        entry.created_at,
+        entry.updated_at,
+      ];
+      return fields
+        .map((field) => {
+          if (/[",\r\n]/.test(field)) {
+            return `"${field.replace(/"/g, '""')}"`;
+          }
+          return field;
+        })
+        .join(",");
+    }),
+  ];
+  return lines.join("\n");
+}
+
+function downloadBlob(content: string, name: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = name;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function exportEntries(format: ExportFormat): Promise<string> {
+  if (isTauri()) return invoke<string>("export_entries", { format });
+  ensureDemoSeed();
+  const sorted = [...readLocal<Entry[]>(ENTRIES_KEY, [])].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
+  const from = sorted[0]?.date ?? "empty";
+  const to = sorted.length ? sorted[sorted.length - 1].date : "empty";
+  const name = `ceres-${from}-${to}.${format}`;
+  if (format === "csv") {
+    downloadBlob(renderLocalCsv(sorted), name, "text/csv;charset=utf-8");
+  } else {
+    downloadBlob(
+      JSON.stringify(sorted, null, 2),
+      name,
+      "application/json;charset=utf-8",
+    );
+  }
+  return name;
+}

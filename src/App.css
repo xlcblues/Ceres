@@ -790,3 +790,305 @@ a:focus-visible {
     animation: none;
   }
 }
+
+.reminder-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.reminder-banner > svg {
+  flex: 0 0 auto;
+  color: var(--accent-text);
+}
+
+.reminder-banner div {
+  flex: 1;
+  min-width: 0;
+}
+
+.reminder-banner strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.reminder-banner span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.reminder-banner .primary-button {
+  padding: 7px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.trend-chart {
+  position: relative;
+  width: 100%;
+}
+
+.trend-chart svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.chart-grid-line {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.chart-y-label,
+.chart-x-label {
+  fill: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.chart-area {
+  fill: var(--spark-fill);
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-smooth {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 5 6;
+  opacity: 0.9;
+}
+
+.chart-dot {
+  fill: var(--accent);
+  stroke: var(--bg-elevated);
+  stroke-width: 1.5;
+}
+
+.chart-dot.current {
+  fill: var(--primary);
+}
+
+.chart-cursor {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chart-cursor-dot {
+  fill: var(--bg-elevated);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.chart-tooltip {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 118px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+.chart-tooltip strong {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.chart-tooltip span {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.chart-tooltip em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+.chart-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  gap: 16px;
+}
+
+.streak-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.streak-number {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.streak-number strong {
+  font-size: 54px;
+  font-weight: 680;
+  line-height: 1;
+  color: var(--accent-text);
+  letter-spacing: 0;
+}
+
+.streak-number span {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.streak-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.streak-meta div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.streak-meta span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.streak-meta strong {
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.milestone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.milestone-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.milestone-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.milestone-head span {
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.milestone-head em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.milestone-row.reached .milestone-head em {
+  color: var(--accent-text);
+}
+
+.milestone-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+
+.milestone-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.export-actions .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.export-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--positive);
+  word-break: break-all;
+}
+
+@media (max-width: 760px) {
+  .chart-panel .panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reminder-banner {
+    flex-wrap: wrap;
+  }
+}

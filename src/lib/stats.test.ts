@@ -3,9 +3,13 @@ import type { Entry, Goal } from "./api";
 import { addDays, todayKey } from "./date";
 import {
   computeEntryStats,
+  computeMilestones,
+  computeTrendStats,
   formatSignedChange,
   formatWeight,
   fromDisplayWeight,
+  movingAverage,
+  sliceByRange,
   toDisplayWeight,
   weightChange,
 } from "./stats";
@@ -78,5 +82,57 @@ describe("entry statistics", () => {
     expect(stats.weekChange).toBeCloseTo(-0.8, 1);
     expect(weightChange(entries)).toBeCloseTo(-1.8, 1);
     expect(stats.totalChange).toBeCloseTo(-3.2, 1);
+  });
+});
+
+describe("trend statistics", () => {
+  it("slices entries by range", () => {
+    const entries = Array.from({ length: 40 }, (_, index) =>
+      entry(addDays(todayKey(), -(39 - index)), 74 - index * 0.1),
+    );
+    expect(sliceByRange(entries, "7")).toHaveLength(7);
+    expect(sliceByRange(entries, "30")).toHaveLength(30);
+    expect(sliceByRange(entries, "90")).toHaveLength(40);
+    expect(sliceByRange(entries, "all")).toHaveLength(40);
+  });
+
+  it("computes moving averages", () => {
+    expect(movingAverage([72, 73, 74, 75], 3)).toEqual([
+      72, 72.5, 73, 74,
+    ]);
+  });
+
+  it("computes range stats and week over week change", () => {
+    const entries = Array.from({ length: 14 }, (_, index) =>
+      entry(addDays(todayKey(), -(13 - index)), 74.2 - index * 0.14),
+    );
+    const stats = computeTrendStats(entries);
+    expect(stats.count).toBe(14);
+    expect(stats.lowest).toBeCloseTo(72.4, 1);
+    expect(stats.highest).toBeCloseTo(74.2, 1);
+    expect(stats.change).toBeCloseTo(-1.8, 1);
+    expect(stats.weekOverWeek).toBeCloseTo(-0.98, 1);
+  });
+
+  it("computes milestones from goal baseline", () => {
+    const goal: Goal = {
+      target_weight: 68,
+      start_weight: 75.6,
+      start_date: addDays(todayKey(), -14),
+    };
+    const entries = Array.from({ length: 15 }, (_, index) =>
+      entry(addDays(todayKey(), -(14 - index)), 75.6 - index * 0.5),
+    );
+    const insights = computeMilestones(entries, goal);
+    expect(insights.daysTracked).toBe(15);
+    expect(insights.streakDays).toBe(15);
+    expect(insights.longestStreak).toBe(15);
+    expect(insights.totalChange).toBeCloseTo(-7.0, 1);
+    expect(insights.milestones.find((item) => item.threshold === 5)?.reached).toBe(
+      true,
+    );
+    expect(insights.milestones.find((item) => item.threshold === 10)?.reached).toBe(
+      false,
+    );
   });
 });
