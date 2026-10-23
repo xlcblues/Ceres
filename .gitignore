@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# UI audit artifacts
+.ui-snapshots
+.ui-edge-profile
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

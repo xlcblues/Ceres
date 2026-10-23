@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentType,
   type ReactNode,
@@ -109,6 +110,26 @@ const VIEW_META: Record<View, { title: string; eyebrow: string; dateLine?: strin
   },
 };
 
+function ThemeSwitch() {
+  const { preference, setPreference } = useTheme();
+  return (
+    <div className="theme-switch" role="group" aria-label="主题">
+      {THEME_OPTIONS.map((option) => (
+        <button
+          key={option.value}
+          className={preference === option.value ? "active" : ""}
+          title={option.label}
+          aria-label={option.label}
+          aria-pressed={preference === option.value}
+          onClick={() => setPreference(option.value)}
+        >
+          <option.icon size={15} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function changeClass(value: number | null): string {
   if (value == null || value === 0) return "";
   return value < 0 ? "change-down" : "change-up";
@@ -148,7 +169,7 @@ function StatCard({
     <div className={`stat-card${accent ? " accent" : ""}`}>
       <div className="stat-card-top">
         <span>{label}</span>
-        {icon}
+        <span className="stat-icon">{icon}</span>
       </div>
       <div className="stat-card-value">
         <span>{value}</span>
@@ -337,7 +358,13 @@ function EntryForm({
 
   return (
     <>
-      <div className="entry-form">
+      <form
+        className="entry-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleSave();
+        }}
+      >
         <div className="field">
           <label htmlFor="entry-date">日期</label>
           <input
@@ -407,14 +434,13 @@ function EntryForm({
           ) : null}
           <button
             className="primary-button"
-            type="button"
+            type="submit"
             disabled={saving}
-            onClick={() => void handleSave()}
           >
             {saving ? "保存中…" : existing ? "更新记录" : "保存记录"}
           </button>
         </div>
-      </div>
+      </form>
       <div className="form-foot">
         <div>
           {error ? <p className="form-error">{error}</p> : null}
@@ -509,7 +535,13 @@ function GoalForm({
   };
 
   return (
-    <div className="goal-form">
+    <form
+      className="goal-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleSave();
+      }}
+    >
       <div className="field">
         <label htmlFor="goal-target">目标体重（{unit}）</label>
         <input
@@ -559,9 +591,8 @@ function GoalForm({
       <div className="form-actions">
         <button
           className="primary-button"
-          type="button"
+          type="submit"
           disabled={saving}
-          onClick={() => void handleSave()}
         >
           {saving ? "保存中…" : goal ? "更新目标" : "保存目标"}
         </button>
@@ -572,7 +603,7 @@ function GoalForm({
           <p className="form-success">{success}</p>
         ) : null}
       </div>
-    </div>
+    </form>
   );
 }
 
@@ -602,6 +633,10 @@ function TodayView({
     stats.currentWeight != null && goal
       ? Number((stats.currentWeight - goal.target_weight).toFixed(1))
       : null;
+  const todayEntry = useMemo(
+    () => entries.find((entry) => entry.date === todayKey()) ?? null,
+    [entries],
+  );
 
   return (
     <>
@@ -655,7 +690,17 @@ function TodayView({
               <p className="panel-kicker">今日</p>
               <h2>记录体重</h2>
             </div>
-            <CalendarDays size={18} className="panel-icon" />
+            {todayEntry ? (
+              <span className="status-chip recorded">
+                <Check size={13} />
+                今日 {formatWeight(todayEntry.weight, unit)} {unit}
+              </span>
+            ) : (
+              <span className="status-chip">
+                <CalendarDays size={13} />
+                今日未记录
+              </span>
+            )}
           </div>
           <EntryForm entries={entries} unit={unit} onChanged={onChanged} />
         </section>
@@ -666,7 +711,9 @@ function TodayView({
                 <p className="panel-kicker">目标</p>
                 <h2>进度环</h2>
               </div>
-              <Target size={18} className="panel-icon" />
+              <span className="panel-icon-tile">
+                <Target size={16} />
+              </span>
             </div>
             <div className="goal-body">
               <div className="goal-ring">
@@ -708,7 +755,9 @@ function TodayView({
                 <p className="panel-kicker">近 7 日</p>
                 <h2>体重曲线</h2>
               </div>
-              <TrendingUp size={18} className="panel-icon" />
+              <span className="panel-icon-tile">
+                <TrendingUp size={16} />
+              </span>
             </div>
             {weekEntries.length ? (
               <div className="trend-body">
@@ -870,6 +919,16 @@ function TrendView({
           <>
             <TrendChart entries={rangeEntries} unit={unit} />
             <div className="chart-foot">
+              <div className="chart-legend">
+                <span>
+                  <i className="legend-line actual" />
+                  实际记录
+                </span>
+                <span>
+                  <i className="legend-line smooth" />
+                  7 日均线
+                </span>
+              </div>
               {stats.weekOverWeek != null ? (
                 <span
                   className={`change-pill ${changeClass(stats.weekOverWeek)}`}
@@ -877,7 +936,6 @@ function TrendView({
                   近 7 日 {formatSignedChange(stats.weekOverWeek, unit)} {unit}
                 </span>
               ) : null}
-              <span className="chart-hint">7 日移动平均以虚线显示</span>
             </div>
           </>
         ) : (
@@ -896,7 +954,9 @@ function TrendView({
               <p className="panel-kicker">习惯</p>
               <h2>连续记录</h2>
             </div>
-            <Activity size={18} className="panel-icon" />
+            <span className="panel-icon-tile">
+              <Activity size={16} />
+            </span>
           </div>
           <div className="streak-body">
             <div className="streak-number">
@@ -929,7 +989,9 @@ function TrendView({
               <p className="panel-kicker">里程碑</p>
               <h2>减重节点</h2>
             </div>
-            <Award size={18} className="panel-icon" />
+            <span className="panel-icon-tile">
+              <Award size={16} />
+            </span>
           </div>
           <div className="milestone-list">
             {insights.milestones.map((milestone) => {
@@ -980,7 +1042,9 @@ function TrendView({
             <p className="panel-kicker">数据</p>
             <h2>导出记录</h2>
           </div>
-          <Download size={18} className="panel-icon" />
+          <span className="panel-icon-tile">
+            <Download size={16} />
+          </span>
         </div>
         <div className="export-actions">
           <button
@@ -1218,6 +1282,30 @@ function RecordsView({
     () => [...entries].sort((a, b) => b.date.localeCompare(a.date)),
     [entries],
   );
+  const groups = useMemo(() => {
+    const result: {
+      key: string;
+      label: string;
+      rows: { entry: Entry; previousWeight: number | null }[];
+    }[] = [];
+    for (let index = 0; index < sorted.length; index += 1) {
+      const entry = sorted[index];
+      const key = entry.date.slice(0, 7);
+      const last = result[result.length - 1];
+      const previousWeight = sorted[index + 1]?.weight ?? null;
+      if (!last || last.key !== key) {
+        const [year, month] = key.split("-");
+        result.push({
+          key,
+          label: `${year}年${Number(month)}月`,
+          rows: [{ entry, previousWeight }],
+        });
+      } else {
+        last.rows.push({ entry, previousWeight });
+      }
+    }
+    return result;
+  }, [sorted]);
   const oldest = sorted.length ? sorted[sorted.length - 1].date : null;
   const newest = sorted.length ? sorted[0].date : null;
 
@@ -1251,7 +1339,9 @@ function RecordsView({
             <p className="panel-kicker">快速新增</p>
             <h2>补录一条</h2>
           </div>
-          <Plus size={18} className="panel-icon" />
+          <span className="panel-icon-tile">
+            <Plus size={16} />
+          </span>
         </div>
         <EntryForm entries={entries} unit={unit} onChanged={onChanged} />
       </section>
@@ -1271,14 +1361,22 @@ function RecordsView({
               <span>备注</span>
               <span />
             </div>
-            {sorted.map((entry, index) => (
-              <RecordRow
-                key={entry.id}
-                entry={entry}
-                previousWeight={sorted[index + 1]?.weight ?? null}
-                unit={unit}
-                onChanged={onChanged}
-              />
+            {groups.map((group) => (
+              <div key={group.key} className="record-month">
+                <div className="record-month-label">
+                  <span>{group.label}</span>
+                  <em>{group.rows.length} 条</em>
+                </div>
+                {group.rows.map(({ entry, previousWeight }) => (
+                  <RecordRow
+                    key={entry.id}
+                    entry={entry}
+                    previousWeight={previousWeight}
+                    unit={unit}
+                    onChanged={onChanged}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         ) : (
@@ -1314,7 +1412,9 @@ function SettingsView({
             <p className="panel-kicker">界面</p>
             <h2>外观主题</h2>
           </div>
-          <Monitor size={18} className="panel-icon" />
+          <span className="panel-icon-tile">
+            <Monitor size={16} />
+          </span>
         </div>
         <div className="segmented wide">
           {THEME_OPTIONS.map((option) => (
@@ -1335,7 +1435,9 @@ function SettingsView({
             <p className="panel-kicker">数据</p>
             <h2>计量单位</h2>
           </div>
-          <Scale size={18} className="panel-icon" />
+          <span className="panel-icon-tile">
+            <Scale size={16} />
+          </span>
         </div>
         <div className="segmented wide">
           {(["kg", "lb"] as Unit[]).map((value) => (
@@ -1355,9 +1457,34 @@ function SettingsView({
             <p className="panel-kicker">目标</p>
             <h2>减重目标</h2>
           </div>
-          <Target size={18} className="panel-icon" />
+          <span className="panel-icon-tile">
+            <Target size={16} />
+          </span>
         </div>
         <GoalForm goal={goal} unit={unit} onSaved={onGoalSaved} />
+      </section>
+      <section className="panel about-panel">
+        <div className="panel-head">
+          <div>
+            <p className="panel-kicker">关于</p>
+            <h2>Ceres v0.1.0</h2>
+          </div>
+          <LogoMark className="about-logo" />
+        </div>
+        <div className="about-list">
+          <div>
+            <span>存储</span>
+            <strong>数据仅保存在本机</strong>
+          </div>
+          <div>
+            <span>版本</span>
+            <strong>v0.1.0</strong>
+          </div>
+          <div>
+            <span>定位</span>
+            <strong>安静减重 · 长期陪伴</strong>
+          </div>
+        </div>
       </section>
     </div>
   );
@@ -1388,6 +1515,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<View>("today");
+  const contentRef = useRef<HTMLElement>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -1410,6 +1538,15 @@ function App() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!node) return;
+    const update = () => node.classList.toggle("scrolled", node.scrollTop > 6);
+    update();
+    node.addEventListener("scroll", update, { passive: true });
+    return () => node.removeEventListener("scroll", update);
+  }, []);
 
   const handleUnitChange = (next: Unit) => {
     saveUnit(next);
@@ -1436,16 +1573,19 @@ function App() {
               onClick={() => setActiveView(item.view)}
             >
               <item.icon size={16} />
-              {item.label}
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>
-        <div className="sidebar-foot">
-          <LogoMark className="logo-mark" />
-          <span>数据保存在本机</span>
+        <div className="sidebar-bottom">
+          <ThemeSwitch />
+          <div className="sidebar-foot">
+            <LogoMark className="logo-mark" />
+            <span>本地数据 · v0.1.0</span>
+          </div>
         </div>
       </aside>
-      <main className="content">
+      <main className="content" ref={contentRef}>
         <div className="page">
           <div className="page-head">
             <div>
