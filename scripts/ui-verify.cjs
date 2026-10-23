@@ -221,7 +221,41 @@ async function main() {
               h: Math.round(p.getBoundingClientRect().height),
             }));
             const pageHeadPosition = getComputedStyle(document.querySelector(".page-head")).position;
-            return { issues, panels, pageHeadPosition };
+            const content = document.querySelector(".content");
+            const entrySide = document.querySelector(".entry-side");
+            const pageHeadEl = document.querySelector(".page-head");
+            const statGrid = document.querySelector(".stat-grid");
+            const dashboard = document.querySelector(".dashboard-grid");
+            const entryPanel = document.querySelector(".entry-panel");
+            const goalPanel = document.querySelector(".goal-panel");
+            const weekPanel = document.querySelector(".week-panel");
+            const entryForm = document.querySelector(".entry-form");
+            const pageEl = document.querySelector(".page");
+            const today = {
+              scrollHeight: content.scrollHeight,
+              clientHeight: content.clientHeight,
+              recentRows: entrySide ? entrySide.querySelectorAll(".recent-row").length : 0,
+              recentEmpty: entrySide ? !!entrySide.querySelector(".recent-empty") : false,
+              entrySideHeight: entrySide ? Math.round(entrySide.getBoundingClientRect().height) : 0,
+              pageHeadHeight: pageHeadEl ? Math.round(pageHeadEl.getBoundingClientRect().height) : 0,
+              statHeight: statGrid ? Math.round(statGrid.getBoundingClientRect().height) : 0,
+              dashboardHeight: dashboard ? Math.round(dashboard.getBoundingClientRect().height) : 0,
+              entryHeight: entryPanel ? Math.round(entryPanel.getBoundingClientRect().height) : 0,
+              entryBottom: entryPanel ? Math.round(entryPanel.getBoundingClientRect().bottom) : 0,
+              goalHeight: goalPanel ? Math.round(goalPanel.getBoundingClientRect().height) : 0,
+              weekHeight: weekPanel ? Math.round(weekPanel.getBoundingClientRect().height) : 0,
+              formHeight: entryForm ? Math.round(entryForm.getBoundingClientRect().height) : 0,
+              pageHeight: pageEl ? Math.round(pageEl.getBoundingClientRect().height) : 0,
+              entrySideBottom: entrySide ? Math.round(entrySide.getBoundingClientRect().bottom) : 0,
+              contentBottom: Math.round(content.getBoundingClientRect().bottom),
+            };
+            if (${JSON.stringify(viewport.name)} === "desktop" && ${JSON.stringify(view)} === "今日" && today.scrollHeight > today.clientHeight + 1) {
+              issues.push({ type: "today-scroll", detail: today.scrollHeight + " > " + today.clientHeight });
+            }
+            if (${JSON.stringify(view)} === "今日" && entrySide && today.recentRows === 0 && !today.recentEmpty) {
+              issues.push({ type: "today-recent-missing", detail: "rows=" + today.recentRows + " empty=" + today.recentEmpty + " h=" + today.entrySideHeight });
+            }
+            return { issues, panels, pageHeadPosition, today };
           })()`);
 
           report.shots.push({
@@ -230,6 +264,7 @@ async function main() {
             view,
             file: path.relative(process.cwd(), file),
             issues: audit.issues,
+            today: audit.today,
           });
 
           if (viewport.name === "compact") {
@@ -293,6 +328,12 @@ async function main() {
     );
     if (records) {
       console.log("records scroll sample:", JSON.stringify(records.scroll));
+    }
+    const todayShot = report.shots.find(
+      (shot) => shot.view === "今日" && shot.viewport === "desktop",
+    );
+    if (todayShot) {
+      console.log("today sample:", JSON.stringify(todayShot.today));
     }
   } catch (err) {
     console.error(err);

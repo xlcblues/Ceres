@@ -637,6 +637,16 @@ function TodayView({
     () => entries.find((entry) => entry.date === todayKey()) ?? null,
     [entries],
   );
+  const recentEntries = useMemo(() => {
+    const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+    return sorted.slice(0, 4).map((entry, index) => ({
+      entry,
+      change:
+        index < sorted.length - 1
+          ? Number((entry.weight - sorted[index + 1].weight).toFixed(1))
+          : null,
+    }));
+  }, [entries]);
 
   return (
     <>
@@ -703,6 +713,42 @@ function TodayView({
             )}
           </div>
           <EntryForm entries={entries} unit={unit} onChanged={onChanged} />
+          <div className="entry-side">
+            <div className="entry-side-head">
+              <span className="entry-side-title">
+                <NotebookPen size={14} />
+                最近记录
+              </span>
+              <span className="entry-side-count">
+                {entries.length ? `${entries.length} 条` : "0 条"}
+              </span>
+            </div>
+            {recentEntries.length ? (
+              <div className="recent-list">
+                {recentEntries.map(({ entry, change }) => (
+                  <div className="recent-row" key={entry.date}>
+                    <span className="recent-date">
+                      {formatChineseDate(entry.date)}
+                    </span>
+                    <span className="recent-weight">
+                      {formatWeight(entry.weight, unit)}
+                      <small>{unit}</small>
+                    </span>
+                    <span className={`recent-change ${changeClass(change)}`}>
+                      {change != null
+                        ? formatSignedChange(change, unit)
+                        : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="recent-empty">
+                <Activity size={15} />
+                <span>暂无记录，保存第一条后会自动汇总</span>
+              </div>
+            )}
+          </div>
         </section>
         <div className="dashboard-stack">
           <section className="panel goal-panel">
@@ -1585,7 +1631,10 @@ function App() {
           </div>
         </div>
       </aside>
-      <main className="content" ref={contentRef}>
+      <main
+        className={`content${activeView === "today" ? " content-today" : ""}`}
+        ref={contentRef}
+      >
         <div className="page">
           <div className="page-head">
             <div>
