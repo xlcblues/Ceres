@@ -51,9 +51,9 @@ import {
   formatChineseDate,
   formatFullDate,
   formatToday,
-  isValidDateKey,
   todayKey,
 } from "./lib/date";
+import { sendDailyReminder } from "./lib/reminder";
 import {
   computeEntryStats,
   computeMilestones,
@@ -66,6 +66,12 @@ import {
   sliceByRange,
   type RangeKey,
 } from "./lib/stats";
+import {
+  validateBodyFatInput,
+  validateGoalWeightInput,
+  validateNotFutureDate,
+  validateWeightInput,
+} from "./lib/validation";
 
 type View = "today" | "trend" | "records" | "settings";
 type Icon = ComponentType<{ size?: number; className?: string }>;
@@ -272,19 +278,19 @@ function EntryForm({
   const handleSave = async () => {
     const weightValue = Number(weight);
     const fatValue = bodyFat.trim() ? Number(bodyFat) : null;
-    if (!isValidDateKey(date)) {
-      setError("请选择有效日期");
+    const dateError = validateNotFutureDate(date);
+    if (dateError) {
+      setError(dateError);
       return;
     }
-    if (!Number.isFinite(weightValue) || weightValue <= 0) {
-      setError("请输入大于 0 的体重");
+    const weightError = validateWeightInput(weight);
+    if (weightError) {
+      setError(weightError);
       return;
     }
-    if (
-      fatValue != null &&
-      (!Number.isFinite(fatValue) || fatValue < 0 || fatValue > 100)
-    ) {
-      setError("体脂率应在 0-100 之间");
+    const fatError = validateBodyFatInput(bodyFat);
+    if (fatError) {
+      setError(fatError);
       return;
     }
     setSaving(true);
@@ -347,7 +353,7 @@ function EntryForm({
           <input
             id="entry-weight"
             type="number"
-            min="0"
+            min="0.1"
             step="0.1"
             value={weight}
             placeholder="0.0"
@@ -459,19 +465,26 @@ function GoalForm({
   const handleSave = async () => {
     const targetValue = Number(target);
     const startValue = start.trim() ? Number(start) : null;
-    if (!Number.isFinite(targetValue) || targetValue <= 0) {
-      setError("请输入大于 0 的目标体重");
+    const targetError = validateGoalWeightInput(target, "目标体重");
+    if (targetError) {
+      setError(targetError);
       return;
     }
-    if (
-      startValue != null &&
-      (!Number.isFinite(startValue) || startValue <= 0)
-    ) {
-      setError("起始体重应大于 0");
-      return;
+    if (start.trim() !== "") {
+      const startError = validateGoalWeightInput(start, "起始体重");
+      if (startError) {
+        setError(startError);
+        return;
+      }
     }
-    if (startDate && !isValidDateKey(startDate)) {
-      setError("请选择有效起始日期");
+    if (startDate) {
+      const dateError = validateNotFutureDate(startDate);
+      if (dateError) {
+        setError(dateError);
+        return;
+      }
+    } else if (start.trim() !== "") {
+      setError("请选择起始日期");
       return;
     }
     setSaving(true);
@@ -502,7 +515,7 @@ function GoalForm({
         <input
           id="goal-target"
           type="number"
-          min="0"
+          min="0.1"
           step="0.1"
           value={target}
           placeholder="0.0"
@@ -518,7 +531,7 @@ function GoalForm({
         <input
           id="goal-start"
           type="number"
-          min="0"
+          min="0.1"
           step="0.1"
           value={start}
           placeholder="可选"
@@ -726,15 +739,20 @@ function TrendView({
   goal,
   unit,
   onGoToday,
+  onRetry,
 }: {
   entries: Entry[];
   goal: Goal | null;
   unit: Unit;
   onGoToday: () => void;
+  onRetry: () => void;
 }) {
   const [range, setRange] = useState<RangeKey>("30");
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
-  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<{
+    ok: boolean;
+    text: string;
+  } | null>(null);
 
   const rangeEntries = useMemo(
     () => sliceByRange(entries, range),
@@ -762,9 +780,9 @@ function TrendView({
     setExportStatus(null);
     try {
       const result = await exportEntries(format);
-      setExportStatus(`已导出：${result}`);
+      setExportStatus({ ok: true, text: `已导出：${result}` });
     } catch (caught) {
-      setExportStatus(`导出失败：${String(caught)}`);
+      setExportStatus({ ok: false, text: `导出失败：${String(caught)}` });
     } finally {
       setExporting(null);
     }
@@ -772,11 +790,14 @@ function TrendView({
 
   if (!entries.length) {
     return (
-      <EmptyState
-        icon={TrendingUp}
-        title="还没有趋势"
-        description="录入至少两条记录后，这里会生成体重曲线"
-      />
+      <div className="empty-state">
+        <TrendingUp size={22} />
+        <strong>还没有趋势</strong>
+        <span>录入至少两条记录后，这里会生成体重曲线</span>
+        <button className="secondary-button" type="button" onClick={onRetry}>
+          重试
+        </button>
+      </div>
     );
   }
 
@@ -980,7 +1001,9 @@ function TrendView({
           </button>
         </div>
         {exportStatus ? (
-          <p className="export-status">{exportStatus}</p>
+          <p className={`export-status ${exportStatus.ok ? "" : "failed"}`}>
+            {exportStatus.text}
+          </p>
         ) : (
           <p className="form-hint">导出全部记录，桌面端保存到应用数据目录</p>
         )}
@@ -1020,15 +1043,14 @@ function RecordRow({
   const handleSave = async () => {
     const weightValue = Number(weight);
     const fatValue = fat.trim() ? Number(fat) : null;
-    if (!Number.isFinite(weightValue) || weightValue <= 0) {
-      setError("请输入大于 0 的体重");
+    const weightError = validateWeightInput(weight);
+    if (weightError) {
+      setError(weightError);
       return;
     }
-    if (
-      fatValue != null &&
-      (!Number.isFinite(fatValue) || fatValue < 0 || fatValue > 100)
-    ) {
-      setError("体脂率应在 0-100 之间");
+    const fatError = validateBodyFatInput(fat);
+    if (fatError) {
+      setError(fatError);
       return;
     }
     setSaving(true);
@@ -1079,7 +1101,7 @@ function RecordRow({
         <input
           className="inline-input"
           type="number"
-          min="0"
+          min="0.1"
           step="0.1"
           value={weight}
           aria-label="体重"
@@ -1375,6 +1397,9 @@ function App() {
       ]);
       setEntries(nextEntries);
       setGoal(nextGoal);
+      if (!nextEntries.some((entry) => entry.date === todayKey())) {
+        void sendDailyReminder();
+      }
     } catch (caught) {
       setError(String(caught));
     } finally {
@@ -1438,7 +1463,22 @@ function App() {
               description="读取本地记录…"
             />
           ) : error ? (
-            <EmptyState icon={NotebookPen} title="读取失败" description={error} />
+            <div className="empty-state error-state">
+              <NotebookPen size={22} />
+              <strong>读取失败</strong>
+              <span>{error}</span>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  void loadData();
+                }}
+              >
+                重试
+              </button>
+            </div>
           ) : (
             <>
               {activeView === "today" ? (
@@ -1455,6 +1495,7 @@ function App() {
                   goal={goal}
                   unit={unit}
                   onGoToday={() => setActiveView("today")}
+                  onRetry={() => void loadData()}
                 />
               ) : null}
               {activeView === "records" ? (

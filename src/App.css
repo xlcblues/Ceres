@@ -1073,6 +1073,18 @@ a:focus-visible {
   word-break: break-all;
 }
 
+.export-status.failed {
+  color: var(--negative);
+}
+
+.empty-state.error-state {
+  border-style: solid;
+}
+
+.empty-state.error-state .secondary-button {
+  margin-top: 6px;
+}
+
 @media (max-width: 760px) {
   .chart-panel .panel-head {
     flex-direction: column;

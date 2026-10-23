@@ -47,6 +47,10 @@ function writeLocal(key: string, value: unknown) {
 const smallDelay = () => new Promise((resolve) => setTimeout(resolve, 60));
 
 function ensureDemoSeed() {
+  const demoRequested =
+    new URLSearchParams(window.location.search).get("demo") === "1" ||
+    localStorage.getItem("ceres.demo") === "1";
+  if (!demoRequested) return;
   if (
     localStorage.getItem(ENTRIES_KEY) !== null ||
     localStorage.getItem(GOAL_KEY) !== null
