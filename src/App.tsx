@@ -42,6 +42,8 @@ import {
   saveGoal,
   saveUnit,
   upsertEntry,
+  UNIT_LABELS,
+  UNIT_OPTIONS,
   type Entry,
   type ExportFormat,
   type Goal,
@@ -134,6 +136,8 @@ function changeClass(value: number | null): string {
   if (value == null || value === 0) return "";
   return value < 0 ? "change-down" : "change-up";
 }
+
+const unitLabel = (unit: Unit) => UNIT_LABELS[unit];
 
 function LogoMark({ className }: { className?: string }) {
   return (
@@ -274,7 +278,7 @@ function EntryForm({
   useEffect(() => {
     setWeight(
       existing
-        ? String(Number(toDisplayWeight(existing.weight, unit).toFixed(1)))
+        ? toDisplayWeight(existing.weight, unit).toFixed(2)
         : "",
     );
     setBodyFat(existing?.body_fat != null ? String(existing.body_fat) : "");
@@ -320,7 +324,7 @@ function EntryForm({
     try {
       await upsertEntry({
         date,
-        weight: Number(fromDisplayWeight(weightValue, unit).toFixed(1)),
+        weight: Number(fromDisplayWeight(weightValue, unit).toFixed(2)),
         body_fat: fatValue != null ? Number(fatValue.toFixed(1)) : null,
         note: note.trim() || null,
       });
@@ -376,14 +380,14 @@ function EntryForm({
           />
         </div>
         <div className="field">
-          <label htmlFor="entry-weight">体重（{unit}）</label>
+          <label htmlFor="entry-weight">体重（{unitLabel(unit)}）</label>
           <input
             id="entry-weight"
             type="number"
             min="0.1"
-            step="0.1"
+            step="0.01"
             value={weight}
-            placeholder="0.0"
+            placeholder="0.00"
             onChange={(event) => {
               setWeight(event.target.value);
               clearStatus();
@@ -475,12 +479,12 @@ function GoalForm({
   useEffect(() => {
     setTarget(
       goal
-        ? String(Number(toDisplayWeight(goal.target_weight, unit).toFixed(1)))
+        ? toDisplayWeight(goal.target_weight, unit).toFixed(2)
         : "",
     );
     setStart(
       goal?.start_weight != null
-        ? String(Number(toDisplayWeight(goal.start_weight, unit).toFixed(1)))
+        ? toDisplayWeight(goal.start_weight, unit).toFixed(2)
         : "",
     );
     setStartDate(goal?.start_date ?? "");
@@ -518,10 +522,10 @@ function GoalForm({
     setSuccess(null);
     try {
       await saveGoal({
-        target_weight: Number(fromDisplayWeight(targetValue, unit).toFixed(1)),
+        target_weight: Number(fromDisplayWeight(targetValue, unit).toFixed(2)),
         start_weight:
           startValue != null
-            ? Number(fromDisplayWeight(startValue, unit).toFixed(1))
+            ? Number(fromDisplayWeight(startValue, unit).toFixed(2))
             : null,
         start_date: startDate || null,
       });
@@ -543,14 +547,14 @@ function GoalForm({
       }}
     >
       <div className="field">
-        <label htmlFor="goal-target">目标体重（{unit}）</label>
+        <label htmlFor="goal-target">目标体重（{unitLabel(unit)}）</label>
         <input
           id="goal-target"
           type="number"
           min="0.1"
-          step="0.1"
+          step="0.01"
           value={target}
-          placeholder="0.0"
+          placeholder="0.00"
           onChange={(event) => {
             setTarget(event.target.value);
             setError(null);
@@ -559,12 +563,12 @@ function GoalForm({
         />
       </div>
       <div className="field">
-        <label htmlFor="goal-start">起始体重（{unit}）</label>
+        <label htmlFor="goal-start">起始体重（{unitLabel(unit)}）</label>
         <input
           id="goal-start"
           type="number"
           min="0.1"
-          step="0.1"
+          step="0.01"
           value={start}
           placeholder="可选"
           onChange={(event) => {
@@ -631,7 +635,7 @@ function TodayView({
   }, [entries]);
   const targetDelta =
     stats.currentWeight != null && goal
-      ? Number((stats.currentWeight - goal.target_weight).toFixed(1))
+      ? Number((stats.currentWeight - goal.target_weight).toFixed(2))
       : null;
   const todayEntry = useMemo(
     () => entries.find((entry) => entry.date === todayKey()) ?? null,
@@ -643,7 +647,7 @@ function TodayView({
       entry,
       change:
         index < sorted.length - 1
-          ? Number((entry.weight - sorted[index + 1].weight).toFixed(1))
+          ? Number((entry.weight - sorted[index + 1].weight).toFixed(2))
           : null,
     }));
   }, [entries]);
@@ -658,7 +662,7 @@ function TodayView({
               ? formatWeight(stats.currentWeight, unit)
               : "—"
           }
-          unit={unit}
+          unit={unitLabel(unit)}
           hint="最新记录"
           icon={<Scale size={16} />}
         />
@@ -669,7 +673,7 @@ function TodayView({
               ? formatSignedChange(stats.weekChange, unit)
               : "—"
           }
-          unit={unit}
+          unit={unitLabel(unit)}
           hint="体重变化"
           accent
           icon={<TrendingUp size={16} />}
@@ -684,10 +688,10 @@ function TodayView({
         <StatCard
           label="距目标"
           value={targetDelta != null ? formatSignedChange(targetDelta, unit) : "—"}
-          unit={unit}
+          unit={unitLabel(unit)}
           hint={
             goal
-              ? `目标 ${formatWeight(goal.target_weight, unit)} ${unit}`
+              ? `目标 ${formatWeight(goal.target_weight, unit)} ${unitLabel(unit)}`
               : "尚未设置目标"
           }
           icon={<Target size={16} />}
@@ -703,7 +707,7 @@ function TodayView({
             {todayEntry ? (
               <span className="status-chip recorded">
                 <Check size={13} />
-                今日 {formatWeight(todayEntry.weight, unit)} {unit}
+                今日 {formatWeight(todayEntry.weight, unit)} {unitLabel(unit)}
               </span>
             ) : (
               <span className="status-chip">
@@ -732,7 +736,7 @@ function TodayView({
                     </span>
                     <span className="recent-weight">
                       {formatWeight(entry.weight, unit)}
-                      <small>{unit}</small>
+                      <small>{unitLabel(unit)}</small>
                     </span>
                     <span className={`recent-change ${changeClass(change)}`}>
                       {change != null
@@ -774,7 +778,7 @@ function TodayView({
                   <span>目标体重</span>
                   <strong>
                     {goal
-                      ? `${formatWeight(goal.target_weight, unit)} ${unit}`
+                      ? `${formatWeight(goal.target_weight, unit)} ${unitLabel(unit)}`
                       : "—"}
                   </strong>
                 </div>
@@ -782,7 +786,7 @@ function TodayView({
                   <span>起始体重</span>
                   <strong>
                     {goal?.start_weight != null
-                      ? `${formatWeight(goal.start_weight, unit)} ${unit}`
+                      ? `${formatWeight(goal.start_weight, unit)} ${unitLabel(unit)}`
                       : "—"}
                   </strong>
                 </div>
@@ -915,14 +919,14 @@ function TrendView({
         <StatCard
           label="平均体重"
           value={stats.average != null ? formatWeight(stats.average, unit) : "—"}
-          unit={unit}
+          unit={unitLabel(unit)}
           hint={`${stats.count} 条记录`}
           icon={<TrendingUp size={16} />}
         />
         <StatCard
           label="区间波动"
           value={stats.range != null ? formatWeight(stats.range, unit) : "—"}
-          unit={unit}
+          unit={unitLabel(unit)}
           hint="最高与最低之差"
           accent
           icon={<Activity size={16} />}
@@ -930,14 +934,14 @@ function TrendView({
         <StatCard
           label="最低体重"
           value={stats.lowest != null ? formatWeight(stats.lowest, unit) : "—"}
-          unit={unit}
+          unit={unitLabel(unit)}
           hint="区间最低"
           icon={<Target size={16} />}
         />
         <StatCard
           label="区间变化"
           value={stats.change != null ? formatSignedChange(stats.change, unit) : "—"}
-          unit={unit}
+          unit={unitLabel(unit)}
           hint="首末差值"
           icon={<Award size={16} />}
         />
@@ -979,7 +983,8 @@ function TrendView({
                 <span
                   className={`change-pill ${changeClass(stats.weekOverWeek)}`}
                 >
-                  近 7 日 {formatSignedChange(stats.weekOverWeek, unit)} {unit}
+                  近 7 日 {formatSignedChange(stats.weekOverWeek, unit)}{" "}
+                  {unitLabel(unit)}
                 </span>
               ) : null}
             </div>
@@ -1022,7 +1027,7 @@ function TrendView({
                 <span>累计变化</span>
                 <strong>
                   {insights.totalChange != null
-                    ? `${formatSignedChange(insights.totalChange, unit)} ${unit}`
+                    ? `${formatSignedChange(insights.totalChange, unit)} ${unitLabel(unit)}`
                     : "—"}
                 </strong>
               </div>
@@ -1054,7 +1059,8 @@ function TrendView({
                 >
                   <div className="milestone-head">
                     <span>
-                      减重 {formatWeight(milestone.threshold, unit)} {unit}
+                      减重 {formatWeight(milestone.threshold, unit)}{" "}
+                      {unitLabel(unit)}
                     </span>
                     {milestone.reached ? (
                       <em>
@@ -1065,7 +1071,8 @@ function TrendView({
                       </em>
                     ) : milestone.remaining != null ? (
                       <em>
-                        还差 {formatWeight(milestone.remaining, unit)} {unit}
+                        还差 {formatWeight(milestone.remaining, unit)}{" "}
+                        {unitLabel(unit)}
                       </em>
                     ) : null}
                   </div>
@@ -1142,7 +1149,7 @@ function RecordRow({
   const [error, setError] = useState<string | null>(null);
 
   const startEdit = () => {
-    setWeight(String(Number(toDisplayWeight(entry.weight, unit).toFixed(1))));
+    setWeight(toDisplayWeight(entry.weight, unit).toFixed(2));
     setFat(entry.body_fat != null ? String(entry.body_fat) : "");
     setNote(entry.note ?? "");
     setEditing(true);
@@ -1168,7 +1175,7 @@ function RecordRow({
     try {
       await upsertEntry({
         date: entry.date,
-        weight: Number(fromDisplayWeight(weightValue, unit).toFixed(1)),
+        weight: Number(fromDisplayWeight(weightValue, unit).toFixed(2)),
         body_fat: fatValue != null ? Number(fatValue.toFixed(1)) : null,
         note: note.trim() || null,
       });
@@ -1201,7 +1208,7 @@ function RecordRow({
 
   const delta =
     previousWeight != null
-      ? Number((entry.weight - previousWeight).toFixed(1))
+      ? Number((entry.weight - previousWeight).toFixed(2))
       : null;
 
   return (
@@ -1212,7 +1219,7 @@ function RecordRow({
           className="inline-input"
           type="number"
           min="0.1"
-          step="0.1"
+          step="0.01"
           value={weight}
           aria-label="体重"
           onChange={(event) => {
@@ -1223,7 +1230,7 @@ function RecordRow({
       ) : (
         <span className="record-weight">
           {formatWeight(entry.weight, unit)}
-          <small>{unit}</small>
+          <small>{unitLabel(unit)}</small>
           {delta != null ? (
             <em className={`record-delta ${changeClass(delta)}`}>
               {formatSignedChange(delta, unit)}
@@ -1402,7 +1409,7 @@ function RecordsView({
           <div className="record-table">
             <div className="record-row record-head">
               <span>日期</span>
-              <span>体重（{unit}）</span>
+              <span>体重（{unitLabel(unit)}）</span>
               <span>体脂</span>
               <span>备注</span>
               <span />
@@ -1486,13 +1493,13 @@ function SettingsView({
           </span>
         </div>
         <div className="segmented wide">
-          {(["kg", "lb"] as Unit[]).map((value) => (
+          {UNIT_OPTIONS.map((value) => (
             <button
               key={value}
               className={unit === value ? "active" : ""}
               onClick={() => onUnitChange(value)}
             >
-              {value}
+              {UNIT_LABELS[value]}
             </button>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import type { Entry, Unit } from "../lib/api";
+import { UNIT_LABELS, type Entry, type Unit } from "../lib/api";
 import { formatChineseDate, formatFullDate } from "../lib/date";
 import {
   formatSignedChange,
@@ -191,7 +191,7 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
         >
           <strong>{formatFullDate(activeEntry.date)}</strong>
           <span>
-            {formatWeight(activeEntry.weight, unit)} {unit}
+            {formatWeight(activeEntry.weight, unit)} {UNIT_LABELS[unit]}
           </span>
           {active != null && active > 0 ? (
             <em
@@ -205,7 +205,7 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
                 Number(
                   (
                     activeEntry.weight - sorted[active - 1].weight
-                  ).toFixed(1),
+                  ).toFixed(2),
                 ),
                 unit,
               )}

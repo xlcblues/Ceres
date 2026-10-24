@@ -11,6 +11,9 @@ export function validateWeightInput(raw: string): string | null {
   if (value > MAX_DISPLAY_WEIGHT) {
     return `体重不应超过 ${MAX_DISPLAY_WEIGHT}`;
   }
+  if (!/^\d+(\.\d{1,2})?$/.test(raw.trim())) {
+    return "体重最多支持两位小数";
+  }
   return null;
 }
 
@@ -22,6 +25,9 @@ export function validateGoalWeightInput(raw: string, label: string): string | nu
   }
   if (value > MAX_DISPLAY_WEIGHT) {
     return `${label}不应超过 ${MAX_DISPLAY_WEIGHT}`;
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(raw.trim())) {
+    return `${label}最多支持两位小数`;
   }
   return null;
 }

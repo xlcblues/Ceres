@@ -2,20 +2,25 @@ import type { Entry, Goal, Unit } from "./api";
 import { addDays, todayKey } from "./date";
 
 export const KG_TO_LB = 2.2046226218;
+export const KG_TO_JIN = 2;
 
 export function toDisplayWeight(value: number, unit: Unit): number {
-  return unit === "lb" ? value * KG_TO_LB : value;
+  if (unit === "lb") return value * KG_TO_LB;
+  if (unit === "jin") return value * KG_TO_JIN;
+  return value;
 }
 
 export function fromDisplayWeight(value: number, unit: Unit): number {
-  return unit === "lb" ? value / KG_TO_LB : value;
+  if (unit === "lb") return value / KG_TO_LB;
+  if (unit === "jin") return value / KG_TO_JIN;
+  return value;
 }
 
-export function formatWeight(value: number, unit: Unit, digits = 1): string {
+export function formatWeight(value: number, unit: Unit, digits = 2): string {
   return toDisplayWeight(value, unit).toFixed(digits);
 }
 
-export function formatSignedChange(value: number, unit: Unit, digits = 1): string {
+export function formatSignedChange(value: number, unit: Unit, digits = 2): string {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   return `${sign}${toDisplayWeight(Math.abs(value), unit).toFixed(digits)}`;
 }
@@ -24,7 +29,7 @@ export function weightChange(entries: Entry[]): number | null {
   if (entries.length < 2) return null;
   const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
   return Number(
-    (sorted[0].weight - sorted[sorted.length - 1].weight).toFixed(1),
+    (sorted[0].weight - sorted[sorted.length - 1].weight).toFixed(2),
   );
 }
 
@@ -56,7 +61,7 @@ export function computeEntryStats(
   const highest = count ? Math.max(...weights) : null;
   const range =
     lowest !== null && highest !== null
-      ? Number((highest - lowest).toFixed(1))
+      ? Number((highest - lowest).toFixed(2))
       : null;
 
   let weekChange: number | null = null;
@@ -68,20 +73,20 @@ export function computeEntryStats(
         (
           windowEntries[0].weight -
           windowEntries[windowEntries.length - 1].weight
-        ).toFixed(1),
+        ).toFixed(2),
       );
     } else {
       weekChange = Number(
-        (weights[0] - weights[weights.length - 1]).toFixed(1),
+        (weights[0] - weights[weights.length - 1]).toFixed(2),
       );
     }
   }
 
   let totalChange: number | null = null;
   if (goal?.start_weight != null && currentWeight != null) {
-    totalChange = Number((currentWeight - goal.start_weight).toFixed(1));
+    totalChange = Number((currentWeight - goal.start_weight).toFixed(2));
   } else if (count >= 2) {
-    totalChange = Number((weights[0] - weights[weights.length - 1]).toFixed(1));
+    totalChange = Number((weights[0] - weights[weights.length - 1]).toFixed(2));
   }
 
   let progressPercent: number | null = null;
@@ -189,13 +194,13 @@ export function computeTrendStats(entries: Entry[]): TrendStats {
   const highest = count ? Math.max(...weights) : null;
   const range =
     lowest !== null && highest !== null
-      ? Number((highest - lowest).toFixed(1))
+      ? Number((highest - lowest).toFixed(2))
       : null;
   const first = count ? weights[0] : null;
   const last = count ? weights[weights.length - 1] : null;
   const change =
     first !== null && last !== null
-      ? Number((last - first).toFixed(1))
+      ? Number((last - first).toFixed(2))
       : null;
 
   let trailingAverage: number | null = null;
@@ -220,7 +225,7 @@ export function computeTrendStats(entries: Entry[]): TrendStats {
   }
   const weekOverWeek =
     trailingAverage !== null && previousAverage !== null
-      ? Number((trailingAverage - previousAverage).toFixed(1))
+      ? Number((trailingAverage - previousAverage).toFixed(2))
       : null;
 
   return {
@@ -300,7 +305,7 @@ export function computeMilestones(
   const currentWeight = sorted.length ? sorted[sorted.length - 1].weight : null;
   const totalChange =
     baseline !== null && currentWeight !== null
-      ? Number((currentWeight - baseline).toFixed(1))
+      ? Number((currentWeight - baseline).toFixed(2))
       : null;
 
   const milestones: LossMilestone[] = LOSS_MILESTONES.map((threshold) => {
@@ -317,7 +322,7 @@ export function computeMilestones(
     }
     const remaining =
       baseline !== null && currentWeight !== null
-        ? Number((threshold - (baseline - currentWeight)).toFixed(1))
+        ? Number((threshold - (baseline - currentWeight)).toFixed(2))
         : null;
     return { threshold, reached, date, remaining };
   });

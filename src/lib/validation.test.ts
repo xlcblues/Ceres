@@ -24,7 +24,12 @@ describe("weight input validation", () => {
 
   it("accepts reasonable weights", () => {
     expect(validateWeightInput("70.5")).toBeNull();
+    expect(validateWeightInput("70.25")).toBeNull();
     expect(validateWeightInput(String(MAX_DISPLAY_WEIGHT))).toBeNull();
+  });
+
+  it("rejects more than two decimal places", () => {
+    expect(validateWeightInput("70.123")).toBe("体重最多支持两位小数");
   });
 });
 
@@ -36,6 +41,9 @@ describe("goal weight input validation", () => {
       "目标体重不应超过 500",
     );
     expect(validateGoalWeightInput("68", "目标体重")).toBeNull();
+    expect(validateGoalWeightInput("68.123", "目标体重")).toBe(
+      "目标体重最多支持两位小数",
+    );
   });
 });
 

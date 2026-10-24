@@ -30,15 +30,19 @@ describe("unit conversion", () => {
   it("converts kg to display weight", () => {
     expect(toDisplayWeight(72.4, "kg")).toBe(72.4);
     expect(toDisplayWeight(72.4, "lb")).toBeCloseTo(159.6, 1);
+    expect(toDisplayWeight(72.4, "jin")).toBe(144.8);
     expect(fromDisplayWeight(159.6, "lb")).toBeCloseTo(72.4, 1);
-    expect(formatWeight(72.4, "kg")).toBe("72.4");
-    expect(formatWeight(72.4, "lb")).toBe("159.6");
+    expect(fromDisplayWeight(144.8, "jin")).toBeCloseTo(72.4, 1);
+    expect(formatWeight(72.4, "kg")).toBe("72.40");
+    expect(formatWeight(72.4, "lb")).toBe("159.61");
+    expect(formatWeight(72.4, "jin")).toBe("144.80");
   });
 
   it("formats signed changes", () => {
-    expect(formatSignedChange(-0.6, "kg")).toBe("-0.6");
-    expect(formatSignedChange(0.2, "kg")).toBe("+0.2");
-    expect(formatSignedChange(0, "kg")).toBe("0.0");
+    expect(formatSignedChange(-0.6, "kg")).toBe("-0.60");
+    expect(formatSignedChange(0.2, "kg")).toBe("+0.20");
+    expect(formatSignedChange(0, "kg")).toBe("0.00");
+    expect(formatSignedChange(-1.25, "jin")).toBe("-2.50");
   });
 });
 

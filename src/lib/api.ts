@@ -24,7 +24,15 @@ export interface EntryInput {
   note: string | null;
 }
 
-export type Unit = "kg" | "lb";
+export type Unit = "kg" | "lb" | "jin";
+
+export const UNIT_LABELS: Record<Unit, string> = {
+  kg: "kg",
+  lb: "lb",
+  jin: "斤",
+};
+
+export const UNIT_OPTIONS: Unit[] = ["kg", "jin", "lb"];
 
 const ENTRIES_KEY = "ceres.entries";
 const GOAL_KEY = "ceres.goal";
@@ -160,7 +168,8 @@ export async function deleteEntry(date: string): Promise<boolean> {
 }
 
 export function readUnit(): Unit {
-  return localStorage.getItem(UNIT_KEY) === "lb" ? "lb" : "kg";
+  const stored = localStorage.getItem(UNIT_KEY);
+  return stored === "lb" || stored === "jin" ? stored : "kg";
 }
 
 export function saveUnit(unit: Unit) {
