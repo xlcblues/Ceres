@@ -15,6 +15,7 @@ dist-ssr
 # UI audit artifacts
 .ui-snapshots
 .ui-edge-profile
+.ui-edge-resize-profile
 
 # Editor directories and files
 .vscode/*

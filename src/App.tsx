@@ -1110,147 +1110,145 @@ function TodayView({
             )}
           </div>
           <EntryForm entries={entries} unit={unit} onChanged={onChanged} />
-          <div className="entry-side">
-            <div className="entry-side-head">
-              <span className="entry-side-title">
-                <Flame size={14} />
-                {t("today.energy")}
-              </span>
-              <button className="text-button" type="button" onClick={onGoRecords}>
-                {t("today.goRecord")}
-              </button>
+        </section>
+        <section className="panel goal-panel">
+          <div className="panel-head">
+            <div>
+              <p className="panel-kicker">{t("today.goalKicker")}</p>
+              <h2>{t("today.progressRing")}</h2>
             </div>
-            <div className="entry-energy-grid">
-              <div className="energy-cell">
-                <span>{t("today.intake")}</span>
-                <strong>{prediction.intakeKcal.toFixed(0)}</strong>
-                <small>{t("common.kcal")}</small>
+            <span className="panel-icon-tile">
+              <Target size={16} />
+            </span>
+          </div>
+          <div className="goal-body">
+            <div className="goal-ring">
+              <GoalRing percent={stats.progressPercent ?? 0} />
+              <div className="goal-ring-label">
+                <strong>{Math.round(stats.progressPercent ?? 0)}%</strong>
+                <span>{goal ? t("today.done") : t("today.notSet")}</span>
               </div>
-              <div className="energy-cell">
-                <span>{t("today.burn")}</span>
-                <strong>{prediction.exerciseKcal.toFixed(0)}</strong>
-                <small>{t("common.kcal")}</small>
-              </div>
-              <div className="energy-cell">
-                <span>{t("today.net")}</span>
-                <strong className={changeClass(prediction.energyBalance)}>
-                  {prediction.energyBalance > 0 ? "+" : ""}
-                  {prediction.energyBalance.toFixed(0)}
+            </div>
+            <div className="goal-meta">
+              <div>
+                <span>{t("today.goalWeight")}</span>
+                <strong>
+                  {goal
+                    ? `${formatWeight(goal.target_weight, unit)} ${unitLabel(unit)}`
+                    : "—"}
                 </strong>
-                <small>{t("common.kcal")}</small>
               </div>
-              <div className="energy-cell">
-                <span>{t("today.water")}</span>
-                <strong>{waterMl != null ? Math.round(waterMl) : 0}</strong>
-                <small>ml</small>
+              <div>
+                <span>{t("today.startWeight")}</span>
+                <strong>
+                  {goal?.start_weight != null
+                    ? `${formatWeight(goal.start_weight, unit)} ${unitLabel(unit)}`
+                    : "—"}
+                </strong>
               </div>
-            </div>
-            <div className="entry-prediction">
-              <span>
-                {t("today.tomorrowPrediction", {
-                  date: formatShortDate(addDays(today, 1), language),
-                })}
-              </span>
-              <strong>
-                {prediction.tomorrowWeightKg != null
-                  ? `${toDisplayWeight(prediction.tomorrowWeightKg, unit).toFixed(2)} ${unitLabel(unit)}`
-                  : "—"}
-              </strong>
-              <em className={changeClass(prediction.changeKg)}>
-                {prediction.changeKg != null
-                  ? formatSignedChange(prediction.changeKg, unit)
-                  : t("today.waitingWeight")}
-              </em>
+              <div>
+                <span>{t("today.startDate")}</span>
+                <strong>
+                  {goal?.start_date
+                    ? formatFullDate(goal.start_date, language)
+                    : "—"}
+                </strong>
+              </div>
+              <div>
+                <span>{t("today.targetDate")}</span>
+                <strong>
+                  {goal?.target_date
+                    ? formatFullDate(goal.target_date, language)
+                    : "—"}
+                </strong>
+              </div>
             </div>
           </div>
         </section>
-        <div className="dashboard-stack">
-          <section className="panel goal-panel">
-            <div className="panel-head">
-              <div>
-                <p className="panel-kicker">{t("today.goalKicker")}</p>
-                <h2>{t("today.progressRing")}</h2>
-              </div>
-              <span className="panel-icon-tile">
-                <Target size={16} />
-              </span>
+        <section className="panel energy-panel">
+          <div className="entry-side-head">
+            <span className="entry-side-title">
+              <Flame size={14} />
+              {t("today.energy")}
+            </span>
+            <button className="text-button" type="button" onClick={onGoRecords}>
+              {t("today.goRecord")}
+            </button>
+          </div>
+          <div className="entry-energy-grid">
+            <div className="energy-cell">
+              <span>{t("today.intake")}</span>
+              <strong>{prediction.intakeKcal.toFixed(0)}</strong>
+              <small>{t("common.kcal")}</small>
             </div>
-            <div className="goal-body">
-              <div className="goal-ring">
-                <GoalRing percent={stats.progressPercent ?? 0} />
-                <div className="goal-ring-label">
-                  <strong>{Math.round(stats.progressPercent ?? 0)}%</strong>
-                  <span>{goal ? t("today.done") : t("today.notSet")}</span>
-                </div>
-              </div>
-              <div className="goal-meta">
-                <div>
-                  <span>{t("today.goalWeight")}</span>
-                  <strong>
-                    {goal
-                      ? `${formatWeight(goal.target_weight, unit)} ${unitLabel(unit)}`
-                      : "—"}
-                  </strong>
-                </div>
-                <div>
-                  <span>{t("today.startWeight")}</span>
-                  <strong>
-                    {goal?.start_weight != null
-                      ? `${formatWeight(goal.start_weight, unit)} ${unitLabel(unit)}`
-                      : "—"}
-                  </strong>
-                </div>
-                <div>
-                  <span>{t("today.startDate")}</span>
-                  <strong>
-                    {goal?.start_date
-                      ? formatFullDate(goal.start_date, language)
-                      : "—"}
-                  </strong>
-                </div>
-                <div>
-                  <span>{t("today.targetDate")}</span>
-                  <strong>
-                    {goal?.target_date
-                      ? formatFullDate(goal.target_date, language)
-                      : "—"}
-                  </strong>
-                </div>
+            <div className="energy-cell">
+              <span>{t("today.burn")}</span>
+              <strong>{prediction.exerciseKcal.toFixed(0)}</strong>
+              <small>{t("common.kcal")}</small>
+            </div>
+            <div className="energy-cell">
+              <span>{t("today.net")}</span>
+              <strong className={changeClass(prediction.energyBalance)}>
+                {prediction.energyBalance > 0 ? "+" : ""}
+                {prediction.energyBalance.toFixed(0)}
+              </strong>
+              <small>{t("common.kcal")}</small>
+            </div>
+            <div className="energy-cell">
+              <span>{t("today.water")}</span>
+              <strong>{waterMl != null ? Math.round(waterMl) : 0}</strong>
+              <small>ml</small>
+            </div>
+          </div>
+          <div className="entry-prediction">
+            <span>
+              {t("today.tomorrowPrediction", {
+                date: formatShortDate(addDays(today, 1), language),
+              })}
+            </span>
+            <strong>
+              {prediction.tomorrowWeightKg != null
+                ? `${toDisplayWeight(prediction.tomorrowWeightKg, unit).toFixed(2)} ${unitLabel(unit)}`
+                : "—"}
+            </strong>
+            <em className={changeClass(prediction.changeKg)}>
+              {prediction.changeKg != null
+                ? formatSignedChange(prediction.changeKg, unit)
+                : t("today.waitingWeight")}
+            </em>
+          </div>
+        </section>
+        <section className="panel week-panel">
+          <div className="panel-head">
+            <div>
+              <p className="panel-kicker">{t("today.weekKicker")}</p>
+              <h2>{t("today.weightCurve")}</h2>
+            </div>
+            <span className="panel-icon-tile">
+              <TrendingUp size={16} />
+            </span>
+          </div>
+          {weekEntries.length ? (
+            <div className="trend-body">
+              <Sparkline entries={weekEntries} />
+              <div className="week-labels">
+                <span>{formatShortDate(weekEntries[0].date, language)}</span>
+                <span>
+                  {formatShortDate(
+                    weekEntries[weekEntries.length - 1].date,
+                    language,
+                  )}
+                </span>
               </div>
             </div>
-          </section>
-          <section className="panel week-panel">
-            <div className="panel-head">
-              <div>
-                <p className="panel-kicker">{t("today.weekKicker")}</p>
-                <h2>{t("today.weightCurve")}</h2>
-              </div>
-              <span className="panel-icon-tile">
-                <TrendingUp size={16} />
-              </span>
-            </div>
-            {weekEntries.length ? (
-              <div className="trend-body">
-                <Sparkline entries={weekEntries} />
-                <div className="week-labels">
-                  <span>{formatShortDate(weekEntries[0].date, language)}</span>
-                  <span>
-                    {formatShortDate(
-                      weekEntries[weekEntries.length - 1].date,
-                      language,
-                    )}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <EmptyState
-                icon={Activity}
-                title={t("today.weekEmpty")}
-                description={t("today.weekEmptyDesc")}
-              />
-            )}
-          </section>
-        </div>
+          ) : (
+            <EmptyState
+              icon={Activity}
+              title={t("today.weekEmpty")}
+              description={t("today.weekEmptyDesc")}
+            />
+          )}
+        </section>
       </div>
     </>
   );
