@@ -122,7 +122,7 @@ async function main() {
       { name: "narrow", width: 960, height: 640 },
       { name: "compact", width: 700, height: 720 },
     ];
-    const views = ["今日", "趋势", "记录", "设置"];
+    const views = ["今日", "趋势", "记录", "AI 助手", "设置"];
 
     for (const viewport of viewports) {
       await send("Emulation.setDeviceMetricsOverride", {
@@ -153,6 +153,10 @@ async function main() {
             console.error(`nav not found: ${view}`);
             continue;
           }
+          await evaluate(`(() => {
+            const content = document.querySelector(".content");
+            if (content) content.scrollTop = 0;
+          })()`);
           await sleep(500);
 
           const shot = await send("Page.captureScreenshot", {
@@ -194,7 +198,7 @@ async function main() {
               const r = el.getBoundingClientRect();
               return r.width > 24 && r.height > 14 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
             });
-            const keySelectors = "button, .stat-card-value, .status-chip, .record-date, .record-weight, .record-note, .milestone-head span, .goal-ring-label, .panel-head h2, .chart-legend span, .about-list strong, .page-head h1, .form-hint";
+            const keySelectors = "button, .stat-card-value, .status-chip, .record-date, .record-weight, .record-note, .milestone-head span, .goal-ring-label, .panel-head h2, .chart-legend span, .about-list strong, .page-head h1, .form-hint, .ai-chip, .ai-stat strong, .ai-row strong";
             const keyed = visible.filter((el) => el.matches(keySelectors));
             const overlaps = [];
             for (let i = 0; i < keyed.length; i += 1) {
@@ -220,10 +224,10 @@ async function main() {
               cls: String(p.className).slice(0, 40),
               h: Math.round(p.getBoundingClientRect().height),
             }));
-            const pageHeadPosition = getComputedStyle(document.querySelector(".page-head")).position;
+            const pageHeadEl = document.querySelector(".page-head");
+            const pageHeadPosition = pageHeadEl ? getComputedStyle(pageHeadEl).position : null;
             const content = document.querySelector(".content");
             const entrySide = document.querySelector(".entry-side");
-            const pageHeadEl = document.querySelector(".page-head");
             const statGrid = document.querySelector(".stat-grid");
             const dashboard = document.querySelector(".dashboard-grid");
             const entryPanel = document.querySelector(".entry-panel");
@@ -234,8 +238,8 @@ async function main() {
             const today = {
               scrollHeight: content.scrollHeight,
               clientHeight: content.clientHeight,
-              recentRows: entrySide ? entrySide.querySelectorAll(".recent-row").length : 0,
-              recentEmpty: entrySide ? !!entrySide.querySelector(".recent-empty") : false,
+              energyCells: entrySide ? entrySide.querySelectorAll(".energy-cell").length : 0,
+              hasPrediction: entrySide ? !!entrySide.querySelector(".entry-prediction") : false,
               entrySideHeight: entrySide ? Math.round(entrySide.getBoundingClientRect().height) : 0,
               pageHeadHeight: pageHeadEl ? Math.round(pageHeadEl.getBoundingClientRect().height) : 0,
               statHeight: statGrid ? Math.round(statGrid.getBoundingClientRect().height) : 0,
@@ -249,13 +253,73 @@ async function main() {
               entrySideBottom: entrySide ? Math.round(entrySide.getBoundingClientRect().bottom) : 0,
               contentBottom: Math.round(content.getBoundingClientRect().bottom),
             };
+            const formInputs = [
+              ...document.querySelectorAll(
+                ".entry-form input, .entry-form textarea",
+              ),
+            ].map((el) => {
+              const r = el.getBoundingClientRect();
+              return {
+                tag: el.tagName,
+                id: el.id,
+                height: Math.round(r.height),
+                scrollWidth: el.scrollWidth,
+                clientWidth: el.clientWidth,
+                scrollHeight: el.scrollHeight,
+                clientHeight: el.clientHeight,
+                placeholder: el.getAttribute("placeholder"),
+              };
+            });
+            const clippedFormInputs = formInputs.filter(
+              (item) =>
+                item.scrollWidth > item.clientWidth + 1 ||
+                item.scrollHeight > item.clientHeight + 1,
+            );
+            if (clippedFormInputs.length) {
+              issues.push({
+                type: "form-input-clipping",
+                items: clippedFormInputs.slice(0, 12),
+              });
+            }
+            const life = (() => {
+              const pickerButtons = [
+                ...document.querySelectorAll(".catalog-picker-button"),
+              ];
+              const waterStrong = document.querySelector(".water-summary strong");
+              const prediction = document.querySelector(".life-prediction-value strong");
+              return {
+                pickerButtons: pickerButtons.length,
+                foodPickerLabel: pickerButtons[0]
+                  ? pickerButtons[0].textContent.replace(/\s+/g, " ").trim()
+                  : null,
+                logRows: document.querySelectorAll(".log-row").length,
+                water: waterStrong ? waterStrong.textContent : null,
+                prediction: prediction ? prediction.textContent : null,
+              };
+            })();
+            const aiChat = document.querySelector(".ai-chat-panel");
+            const aiMessages = document.querySelector(".ai-messages");
+            const aiComposer = document.querySelector(".ai-composer");
+            const ai = {
+              chatHeight: aiChat ? Math.round(aiChat.getBoundingClientRect().height) : 0,
+              messagesHeight: aiMessages ? Math.round(aiMessages.getBoundingClientRect().height) : 0,
+              composerBottom: aiComposer ? Math.round(aiComposer.getBoundingClientRect().bottom) : 0,
+              chatBottom: aiChat ? Math.round(aiChat.getBoundingClientRect().bottom) : 0,
+              messagesOverflow: aiMessages ? getComputedStyle(aiMessages).overflowY : null,
+            };
             if (${JSON.stringify(viewport.name)} === "desktop" && ${JSON.stringify(view)} === "今日" && today.scrollHeight > today.clientHeight + 1) {
               issues.push({ type: "today-scroll", detail: today.scrollHeight + " > " + today.clientHeight });
             }
-            if (${JSON.stringify(view)} === "今日" && entrySide && today.recentRows === 0 && !today.recentEmpty) {
-              issues.push({ type: "today-recent-missing", detail: "rows=" + today.recentRows + " empty=" + today.recentEmpty + " h=" + today.entrySideHeight });
+            if (${JSON.stringify(view)} === "今日" && entrySide && today.energyCells < 4) {
+              issues.push({ type: "today-energy-missing", detail: "cells=" + today.energyCells + " prediction=" + today.hasPrediction + " h=" + today.entrySideHeight });
             }
-            return { issues, panels, pageHeadPosition, today };
+            if (${JSON.stringify(view)} === "AI 助手" && aiChat && aiComposer && aiComposer.getBoundingClientRect().bottom > aiChat.getBoundingClientRect().bottom + 1) {
+              issues.push({ type: "ai-composer-overflow", detail: "composerBottom=" + ai.composerBottom + " chatBottom=" + ai.chatBottom });
+            }
+            if (${JSON.stringify(view)} === "AI 助手" && aiMessages && !["auto", "scroll"].includes(getComputedStyle(aiMessages).overflowY)) {
+              issues.push({ type: "ai-messages-not-scrollable", detail: getComputedStyle(aiMessages).overflowY });
+            }
+            return { issues, panels, pageHeadPosition, today, life, ai };
           })()`);
 
           report.shots.push({
@@ -265,7 +329,141 @@ async function main() {
             file: path.relative(process.cwd(), file),
             issues: audit.issues,
             today: audit.today,
+            life: audit.life,
+            panels: audit.panels,
+            ai: audit.ai,
           });
+
+          if (view === "记录" && viewport.name === "desktop") {
+            for (const pickerKind of ["food", "exercise"]) {
+              const opened = await evaluate(`(() => {
+                const buttons = [...document.querySelectorAll(".catalog-picker-button")];
+                const button = buttons[${pickerKind === "food" ? 0 : 1}];
+                if (!button) return false;
+                button.click();
+                return true;
+              })()`);
+              if (!opened) continue;
+              await sleep(220);
+
+              const shot = await send("Page.captureScreenshot", {
+                format: "png",
+              });
+              const file = path.join(
+                OUT_DIR,
+                `${viewport.name}-${theme}-记录-${pickerKind}-picker.png`,
+              );
+              fs.writeFileSync(
+                file,
+                Buffer.from(shot.result.data, "base64"),
+              );
+
+              const pickerAudit = await evaluate(`(() => {
+                const issues = [];
+                const overlay = document.querySelector(".picker-overlay");
+                const dialog = document.querySelector(".picker-dialog");
+                if (!overlay || !dialog) {
+                  issues.push({
+                    type: "picker-missing",
+                    detail: "overlay=" + !!overlay + " dialog=" + !!dialog,
+                  });
+                  return { issues, rows: 0, groups: 0 };
+                }
+                const doc = document.documentElement;
+                if (doc.scrollWidth > doc.clientWidth + 1) {
+                  issues.push({
+                    type: "horizontal-overflow",
+                    detail: doc.scrollWidth + " > " + doc.clientWidth,
+                  });
+                }
+                const textOver = [];
+                dialog
+                  .querySelectorAll(
+                    "strong, em, .picker-row-main span, .picker-group-label, .picker-head h2",
+                  )
+                  .forEach((el) => {
+                    if (el.scrollWidth > el.clientWidth + 2 && el.clientWidth > 0) {
+                      textOver.push({
+                        tag: el.tagName,
+                        text: el.textContent.slice(0, 30),
+                        sw: el.scrollWidth,
+                        cw: el.clientWidth,
+                      });
+                    }
+                  });
+                if (textOver.length) {
+                  issues.push({
+                    type: "picker-text-overflow",
+                    items: textOver.slice(0, 10),
+                  });
+                }
+                const rects = [overlay, dialog].filter(
+                  (el) => el.offsetWidth > 0,
+                );
+                const clipped = rects.filter((el) => {
+                  const r = el.getBoundingClientRect();
+                  return (
+                    r.right > innerWidth + 1 ||
+                    r.left < -1 ||
+                    r.bottom > innerHeight + 1 ||
+                    r.top < -1
+                  );
+                });
+                if (clipped.length) {
+                  issues.push({
+                    type: "picker-viewport-clip",
+                    detail: clipped.length + "/" + rects.length,
+                  });
+                }
+                const dRect = dialog.getBoundingClientRect();
+                const rowClip = [];
+                dialog.querySelectorAll(".picker-row").forEach((el) => {
+                  const r = el.getBoundingClientRect();
+                  if (r.bottom < dRect.top || r.top > dRect.bottom) return;
+                  if (r.right > dRect.right + 1 || r.left < dRect.left - 1) {
+                    rowClip.push({
+                      text: el.textContent.replace(/\s+/g, " ").trim().slice(0, 40),
+                      left: Math.round(r.left),
+                      right: Math.round(r.right),
+                    });
+                  }
+                });
+                if (rowClip.length) {
+                  issues.push({
+                    type: "picker-row-horizontal-clip",
+                    items: rowClip.slice(0, 8),
+                  });
+                }
+                return {
+                  issues,
+                  title: dialog.querySelector("h2")?.textContent ?? null,
+                  rows: document.querySelectorAll(".picker-row").length,
+                  groups: document.querySelectorAll(".picker-group").length,
+                  active: document.querySelectorAll(".picker-row.active").length,
+                  dialogHeight: Math.round(
+                    dialog.getBoundingClientRect().height,
+                  ),
+                  searchVisible: !!dialog.querySelector(".catalog-search input"),
+                };
+              })()`);
+
+              report.shots.push({
+                viewport: viewport.name,
+                theme,
+                view: `记录-${pickerKind}-picker`,
+                file: path.relative(process.cwd(), file),
+                issues: pickerAudit.issues,
+                picker: pickerAudit,
+              });
+
+              await evaluate(`(() => {
+                const close = document.querySelector(".picker-head .icon-button");
+                if (close) close.click();
+                return true;
+              })()`);
+              await sleep(120);
+            }
+          }
 
           if (viewport.name === "compact") {
             const rail = await evaluate(`(() => {
@@ -297,6 +495,12 @@ async function main() {
               };
             })()`);
             report.shots[report.shots.length - 1].scroll = scroll;
+            if (scroll.pageHeadTop > 1) {
+              report.shots[report.shots.length - 1].issues.push({
+                type: "sticky-header-gap",
+                detail: "pageHeadTop=" + scroll.pageHeadTop,
+              });
+            }
           }
         }
       }
@@ -334,6 +538,18 @@ async function main() {
     );
     if (todayShot) {
       console.log("today sample:", JSON.stringify(todayShot.today));
+    }
+    const lifeShot = report.shots.find(
+      (shot) => shot.view === "记录" && shot.viewport === "desktop",
+    );
+    if (lifeShot) {
+      console.log("life sample:", JSON.stringify(lifeShot.life));
+    }
+    const aiShot = report.shots.find(
+      (shot) => shot.view === "AI 助手" && shot.viewport === "desktop",
+    );
+    if (aiShot) {
+      console.log("ai sample:", JSON.stringify(aiShot.ai));
     }
   } catch (err) {
     console.error(err);

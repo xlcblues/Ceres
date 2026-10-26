@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { UNIT_LABELS, type Entry, type Unit } from "../lib/api";
-import { formatChineseDate, formatFullDate } from "../lib/date";
+import { UNIT_LABELS, type Entry, type Goal, type Unit } from "../lib/api";
+import {
+  formatFullDate,
+  formatShortDate,
+  parseDateKey,
+} from "../lib/date";
+import { useI18n } from "../lib/i18n";
 import {
   formatSignedChange,
   formatWeight,
@@ -13,7 +18,33 @@ const PAD_RIGHT = 22;
 const PAD_BOTTOM = 30;
 const PAD_LEFT = 54;
 
-export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) {
+export function canDrawGoal(goal: Goal | null): boolean {
+  return Boolean(
+    goal &&
+      goal.start_weight != null &&
+      goal.start_date != null &&
+      goal.target_weight != null &&
+      goal.target_date != null &&
+      goal.start_date !== goal.target_date,
+  );
+}
+
+function daysBetween(from: string, to: string): number {
+  return Math.round(
+    (parseDateKey(to).getTime() - parseDateKey(from).getTime()) / 86400000,
+  );
+}
+
+export function TrendChart({
+  entries,
+  goal,
+  unit,
+}: {
+  entries: Entry[];
+  goal: Goal | null;
+  unit: Unit;
+}) {
+  const { language, t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(720);
@@ -37,7 +68,33 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
   const model = useMemo(() => {
     const values = sorted.map((entry) => entry.weight);
     const smooth = movingAverage(values, 7);
-    const all = [...values, ...smooth];
+    const goalMap = new Map<string, number>();
+    const goalPoints: { index: number; value: number }[] = [];
+    const goalSpan = canDrawGoal(goal)
+      ? daysBetween(goal!.start_date!, goal!.target_date!)
+      : 0;
+    if (canDrawGoal(goal) && goalSpan > 0) {
+      sorted.forEach((entry, index) => {
+        if (
+          entry.date < goal!.start_date! ||
+          entry.date > goal!.target_date!
+        ) {
+          return;
+        }
+        const elapsed = daysBetween(goal!.start_date!, entry.date);
+        const value =
+          goal!.start_weight! +
+          (goal!.target_weight! - goal!.start_weight!) * (elapsed / goalSpan);
+        if (!Number.isFinite(value)) return;
+        goalMap.set(entry.date, value);
+        goalPoints.push({ index, value });
+      });
+    }
+    const all = [
+      ...values,
+      ...smooth,
+      ...goalPoints.map((point) => point.value),
+    ];
     const rawMin = Math.min(...all);
     const rawMax = Math.max(...all);
     const pad = rawMax - rawMin < 0.001 ? 1 : (rawMax - rawMin) * 0.16;
@@ -67,6 +124,14 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
           ).toFixed(2)}`,
       )
       .join(" ");
+    const goalLine = goalPoints
+      .map(
+        (point, index) =>
+          `${index === 0 ? "M" : "L"} ${x(point.index).toFixed(2)} ${y(
+            point.value,
+          ).toFixed(2)}`,
+      )
+      .join(" ");
     const baselineY = (PAD_TOP + plotHeight).toFixed(2);
     const area = `M ${x(0).toFixed(2)} ${baselineY} ${line
       .replace(/^M/, "L")
@@ -81,8 +146,19 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
         : Array.from({ length: 5 }, (_, index) =>
             Math.round((index * (sorted.length - 1)) / 4),
           );
-    return { x, y, line, smoothLine, area, grid, ticks, plotHeight };
-  }, [sorted, width]);
+    return {
+      x,
+      y,
+      line,
+      smoothLine,
+      goalLine,
+      goalMap,
+      area,
+      grid,
+      ticks,
+      plotHeight,
+    };
+  }, [sorted, goal, width]);
 
   if (!sorted.length) return null;
 
@@ -101,6 +177,9 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
   const activeEntry = active != null ? sorted[active] : null;
   const activeX = active != null ? model.x(active) : 0;
   const activeY = activeEntry ? model.y(activeEntry.weight) : 0;
+  const activeGoal = activeEntry
+    ? model.goalMap.get(activeEntry.date) ?? null
+    : null;
 
   return (
     <div className="trend-chart" ref={containerRef}>
@@ -109,7 +188,7 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
         width={width}
         height={HEIGHT}
         role="img"
-        aria-label="体重趋势图"
+        aria-label={t("trend.chartAria")}
         onMouseMove={handleMove}
         onMouseLeave={() => setActive(null)}
       >
@@ -143,6 +222,13 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
           d={model.smoothLine}
           vectorEffect="non-scaling-stroke"
         />
+        {model.goalLine ? (
+          <path
+            className="chart-goal"
+            d={model.goalLine}
+            vectorEffect="non-scaling-stroke"
+          />
+        ) : null}
         {model.ticks.map((index) => (
           <text
             key={index}
@@ -151,7 +237,7 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
             y={HEIGHT - 9}
             textAnchor="middle"
           >
-            {formatChineseDate(sorted[index].date)}
+            {formatShortDate(sorted[index].date, language)}
           </text>
         ))}
         {sorted.map((entry, index) => (
@@ -189,10 +275,17 @@ export function TrendChart({ entries, unit }: { entries: Entry[]; unit: Unit }) 
             top: Math.max(8, activeY - 64),
           }}
         >
-          <strong>{formatFullDate(activeEntry.date)}</strong>
+          <strong>{formatFullDate(activeEntry.date, language)}</strong>
           <span>
             {formatWeight(activeEntry.weight, unit)} {UNIT_LABELS[unit]}
           </span>
+          {activeGoal != null ? (
+            <span className="tooltip-goal">
+              {t("trend.dailyGoalValue", {
+                value: `${formatWeight(activeGoal, unit)} ${UNIT_LABELS[unit]}`,
+              })}
+            </span>
+          ) : null}
           {active != null && active > 0 ? (
             <em
               className={

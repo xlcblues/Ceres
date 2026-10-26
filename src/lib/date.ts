@@ -30,14 +30,62 @@ export function formatChineseDate(key: string): string {
   return `${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
-export function formatFullDate(key: string): string {
+export function formatShortDate(key: string, locale = "zh-CN"): string {
+  if (locale === "zh-CN") return formatChineseDate(key);
+  const date = parseDateKey(key);
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+export function formatFullDate(key: string, locale = "zh-CN"): string {
+  if (locale === "zh-CN") {
+    const date = parseDateKey(key);
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  }
+  const date = parseDateKey(key);
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+export function formatMonthKey(key: string, locale = "zh-CN"): string {
+  const [year, month] = key.split("-").map(Number);
+  if (!year || !month) return key;
+  if (locale === "zh-CN") return `${year}年${month}月`;
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+  }).format(new Date(year, month - 1, 1));
+}
+
+export function formatToday(date: Date, locale = "zh-CN"): string {
+  if (locale === "zh-CN") {
+    const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 · ${
+      weekdays[date.getDay()]
+    }`;
+  }
+  const dateText = new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+  const weekday = new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+  }).format(date);
+  return `${dateText} · ${weekday}`;
+}
+
+/*
+ * Kept for backward compatibility; the app UI should use the locale-aware
+ * formatShortDate/formatFullDate/formatToday variants.
+ */
+export function formatFullDateLegacy(key: string): string {
   const date = parseDateKey(key);
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
-export function formatToday(date: Date): string {
-  const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 · ${
-    weekdays[date.getDay()]
-  }`;
-}

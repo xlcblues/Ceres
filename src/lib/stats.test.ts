@@ -51,6 +51,7 @@ describe("entry statistics", () => {
     target_weight: 68,
     start_weight: 75.6,
     start_date: null,
+    target_date: null,
   };
 
   it("computes current, average, range, and progress", () => {
@@ -123,6 +124,7 @@ describe("trend statistics", () => {
       target_weight: 68,
       start_weight: 75.6,
       start_date: addDays(todayKey(), -14),
+      target_date: addDays(todayKey(), 30),
     };
     const entries = Array.from({ length: 15 }, (_, index) =>
       entry(addDays(todayKey(), -(14 - index)), 75.6 - index * 0.5),

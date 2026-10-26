@@ -7,7 +7,7 @@ import {
 
 const REMINDER_KEY = "ceres.reminder.lastShown";
 
-export async function sendDailyReminder(): Promise<void> {
+export async function sendDailyReminder(language = "zh-CN"): Promise<void> {
   const today = new Date().toDateString();
   if (localStorage.getItem(REMINDER_KEY) === today) return;
 
@@ -19,12 +19,19 @@ export async function sendDailyReminder(): Promise<void> {
 
   if (isTauri()) {
     sendNotification({
-      title: "Ceres · 今日记录",
-      body: "今天还没有记录体重，花 10 秒记一笔吧。",
+      title:
+        language === "zh-CN" ? "Ceres · 今日记录" : "Ceres · Daily record",
+      body:
+        language === "zh-CN"
+          ? "今天还没有记录体重，花 10 秒记一笔吧。"
+          : "You haven't logged your weight today. Take 10 seconds to note it.",
     });
   } else if (typeof Notification !== "undefined") {
-    new Notification("Ceres · 今日记录", {
-      body: "今天还没有记录体重，花 10 秒记一笔吧。",
+    new Notification(language === "zh-CN" ? "Ceres · 今日记录" : "Ceres · Daily record", {
+      body:
+        language === "zh-CN"
+          ? "今天还没有记录体重，花 10 秒记一笔吧。"
+          : "You haven't logged your weight today. Take 10 seconds to note it.",
     });
   }
   localStorage.setItem(REMINDER_KEY, today);
