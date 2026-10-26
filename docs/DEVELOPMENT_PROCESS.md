@@ -93,7 +93,7 @@ Logo 中只有两种颜色：Ceres Green（谷绿）与 Harvest Gold（收获金
 - **前端**：React 19 + TypeScript + Vite，承载全部品牌 UI。
 - **样式**：CSS 设计令牌（Design Tokens）+ 轻量 CSS 方案，不用重型组件库，以最大化品牌一致性。
 - **数据层**：SQLite（实际采用 `rusqlite` + bundled 编译），个人体重记录数据量小，SQLite 足够且零运维。
-- **图表**：轻量 SVG 自绘或 `Recharts`，趋势图与环形进度图为主。
+- **图表**：轻量 SVG 自绘，趋势图与环形进度图为主，不引入重型图表库。
 
 **备选：WinUI 3 + C#/.NET 8**
 
@@ -117,9 +117,9 @@ Logo 中只有两种颜色：Ceres Green（谷绿）与 Harvest Gold（收获金
 │  └─ 命令接口 (tauri commands)              │
 ├─────────────────────────────────────────────┤
 │  React + TypeScript 前端                   │
-│  ├─ 视图：今日 / 趋势 / 记录 / 设置        │
+│  ├─ 视图：今日 / 趋势 / 记录 / AI / 设置   │
 │  ├─ 组件库：按设计令牌构建                 │
-│  └─ 状态：Zustand / TanStack Query         │
+│  └─ 状态：React hooks + SQLite 命令        │
 └─────────────────────────────────────────────┘
 ```
 
@@ -153,6 +153,8 @@ CREATE TABLE setting (
 );
 ```
 
+> 实际表结构以 `src-tauri/src/db.rs` 的迁移为准：v2 新增 `profile`、`food_catalog`、`exercise_catalog`、`food_log`、`exercise_log`、`water_log`，v3 为 `goal` 增加 `target_date`。
+
 ### 4.3 模块划分
 
 - `src-tauri/`：Rust 外壳、SQLite 封装、`commands`、通知与托盘。
@@ -168,9 +170,9 @@ CREATE TABLE setting (
 ### 5.1 核心依赖
 
 - 运行时：Rust（stable）、Node.js 18+、Tauri 2 CLI。
-- 前端：React、TypeScript、Vite、Zustand、TanStack Query、Recharts（或自绘 SVG）。
-- 数据：`rusqlite 0.32`（bundled SQLite，M2 已实际采用）。
-- 测试：Vitest（单元）、React Testing Library（组件）、Playwright（端到端，可选）。
+- 前端：React 19、TypeScript、Vite、`lucide-react`、`react-markdown` + `remark-gfm`；图表为自绘 SVG。
+- 数据：`rusqlite`（bundled SQLite），AI 配置与流式对话经 Tauri IPC（`Channel`）。
+- 测试：Vitest（单元）、Rust `cargo test`、`scripts/ui-verify.cjs`（Playwright UI 审计）。
 
 ### 5.2 推荐的 Tauri Skills
 
@@ -239,6 +241,32 @@ CREATE TABLE setting (
 - [x] 自定义细滚动条，并补充 760px 以下紧凑侧栏布局
 - [x] 新增 UI 审计脚本：`node scripts/ui-verify.cjs`，覆盖桌面/窄/紧凑视口与深浅主题共 24 张截图，检查溢出、重叠与滚动吸附
 
+### 里程碑 M5：饮食、运动与饮水（已完成）
+
+- [x] 内置食物 / 运动数据库（48 种食物、16+ 种运动），点击弹窗选择
+- [x] 每日饮食、运动、饮水记录，自动计算摄入与消耗卡路里
+- [x] 基于热量差预测明日体重
+- [x] 食物 / 运动条目支持 AI 估算卡路里并自动入库
+
+### 里程碑 M6：AI 助手（已完成）
+
+- [x] 支持硅基流动 / OpenAI / DeepSeek / 自定义 OpenAI 兼容 API
+- [x] 流式聊天（Tauri `Channel`），Markdown 渲染，无气泡的对话式布局
+- [x] 读取系统数据（体重、饮食、运动、目标），以自然语言录入并应用动作
+- [x] 未知食物 / 运动 AI 估算热量并写入数据库
+
+### 里程碑 M7：多语言与发布（已完成）
+
+- [x] 简体中文 / English 切换
+- [x] 今日页对称四面板、斤单位、体重两位小数
+- [x] v0.1.0 打包发布（NSIS 安装包 + 便携版）
+
+### v0.1.0 发布说明
+
+- 版本号 `0.1.0`，主窗口 1180x760（最小 960x640）。
+- 产物包含 NSIS 安装程序与 `Ceres_0.1.0_x64_portable.zip`，Release 附带 SHA256 校验。
+- 已知限制：安装包未签名，首次运行会被 Windows SmartScreen 拦截，需「更多信息 → 仍要运行」。
+
 ## 7. 开发流程与命令
 
 ### 7.1 日常开发
@@ -280,21 +308,22 @@ node scripts/ui-verify.cjs
 - `tauri.conf.json` 配置 `bundle.icon` 与窗口元数据（当前 `productName`/`title` 为 Ceres）。
 - 打包命令：`npm run tauri build`，产物在 `src-tauri/target/release/bundle/`。
 - 发布前检查：任务栏图标、窗口标题栏、托盘图标在浅色/深色系统主题下均清晰。
+- 已知限制：当前安装包未签名，SmartScreen 会提示未知发布者；正式分发可申请代码签名证书消除该提示。
 
 ## 9. 验收清单
 
-- [ ] 应用可安装并启动，无控制台报错。
-- [ ] 深色/浅色模式均符合品牌板视觉。
-- [ ] 录入、编辑、删除记录后重启数据不丢失。
-- [ ] 趋势图正确反映数据，日期与数值无偏移。
-- [ ] 单位切换（kg/lb）与日期边界无异常。
-- [ ] 安装包体积符合预期，图标在所有尺寸清晰。
-- [ ] 核心流程通过端到端冒烟测试。
+- [x] 应用可安装并启动，无控制台报错。
+- [x] 深色/浅色模式均符合品牌板视觉。
+- [x] 录入、编辑、删除记录后重启数据不丢失。
+- [x] 趋势图正确反映数据，日期与数值无偏移。
+- [x] 单位切换（kg/lb/斤）与日期边界无异常。
+- [x] 安装包体积符合预期，图标在所有尺寸清晰。
+- [x] 核心流程通过端到端冒烟测试。
 
 ## 10. 后续规划（非 MVP）
 
-- 体重趋势的移动平均与目标预测。
 - 与体重秤/健康应用的数据导入。
 - 本地备份与多设备同步（可选、加密）。
 - 桌面小组件/托盘快捷记录。
+- 体重指数（BMI）、体脂目标与更多健康指标。
 
