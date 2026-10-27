@@ -1047,6 +1047,10 @@ function TodayView({
 
   const waterMl = logs?.water_ml ?? null;
 
+  const energyIntake = Math.round(prediction.intakeKcal);
+  const energyBurn = Math.round(prediction.tdee + prediction.exerciseKcal);
+  const energyNet = energyIntake - energyBurn;
+
   return (
     <>
       <div className="stat-grid">
@@ -1184,19 +1188,19 @@ function TodayView({
           <div className="entry-energy-grid">
             <div className="energy-cell">
               <span>{t("today.intake")}</span>
-              <strong>{prediction.intakeKcal.toFixed(0)}</strong>
+              <strong>{energyIntake}</strong>
               <small>{t("common.kcal")}</small>
             </div>
             <div className="energy-cell">
               <span>{t("today.burn")}</span>
-              <strong>{prediction.exerciseKcal.toFixed(0)}</strong>
+              <strong>{energyBurn}</strong>
               <small>{t("common.kcal")}</small>
             </div>
             <div className="energy-cell">
               <span>{t("today.net")}</span>
-              <strong className={changeClass(prediction.netKcal)}>
-                {prediction.netKcal > 0 ? "+" : ""}
-                {prediction.netKcal.toFixed(0)}
+              <strong className={changeClass(energyNet)}>
+                {energyNet > 0 ? "+" : ""}
+                {energyNet}
               </strong>
               <small>{t("common.kcal")}</small>
             </div>
@@ -3053,7 +3057,7 @@ function SettingsView({
         <div className="panel-head">
           <div>
             <p className="panel-kicker">{t("settings.aboutKicker")}</p>
-            <h2>Ceres v0.2.0</h2>
+            <h2>Ceres v0.2.1</h2>
           </div>
           <LogoMark className="about-logo" />
         </div>
@@ -3064,7 +3068,7 @@ function SettingsView({
           </div>
           <div>
             <span>{t("settings.versionLabel")}</span>
-            <strong>v0.2.0</strong>
+            <strong>v0.2.1</strong>
           </div>
           <div>
             <span>{t("settings.positionLabel")}</span>

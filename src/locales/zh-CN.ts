@@ -1,7 +1,7 @@
 export const zhCN = {
   app: {
     tagline: "本地记录 · 安静减重",
-    foot: "本地数据 · v0.2.0",
+    foot: "本地数据 · v0.2.1",
     loading: "正在载入",
     loadingDesc: "读取本地记录…",
     loadFailed: "读取失败",

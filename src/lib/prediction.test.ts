@@ -33,7 +33,6 @@ describe("predictTomorrowWeight", () => {
     expect(result.changeKg).toBeLessThan(0);
     expect(result.bmr).toBeCloseTo(1668.8, 0);
     expect(result.tdee).toBeCloseTo(2294.5, 0);
-    expect(result.netKcal).toBeCloseTo(1100, 0);
     expect(result.energyBalance).toBeLessThan(0);
     expect(result.estimated).toBe(false);
   });

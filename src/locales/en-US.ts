@@ -1,7 +1,7 @@
 export const enUS = {
   app: {
     tagline: "Local-first · Quiet weight loss",
-    foot: "Local data · v0.2.0",
+    foot: "Local data · v0.2.1",
     loading: "Loading",
     loadingDesc: "Reading local records...",
     loadFailed: "Failed to load",
