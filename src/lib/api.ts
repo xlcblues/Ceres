@@ -605,16 +605,16 @@ export interface StoredChatMessage {
 export interface AiSessionMeta {
   id: number;
   title: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AiSession {
   id: number;
   title: string;
   messages: StoredChatMessage[];
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type AiStreamEvent =
@@ -674,7 +674,21 @@ export async function testAiConnection(): Promise<string> {
 const AI_SESSIONS_KEY = "ceres.ai_sessions";
 
 function readLocalSessions(): AiSession[] {
-  return readLocal<AiSession[]>(AI_SESSIONS_KEY, []);
+  const raw = readLocal<
+    Array<Partial<AiSession> & { created_at?: string; updated_at?: string }>
+  >(AI_SESSIONS_KEY, []);
+  return raw.map((session) => ({
+    id: session.id ?? 0,
+    title: session.title ?? "",
+    messages: (session.messages ?? []).map((message) => ({
+      role: message.role === "user" ? "user" : "assistant",
+      content: message.content ?? "",
+      actions: message.actions ?? [],
+      appliedSummary: message.appliedSummary ?? null,
+    })),
+    createdAt: session.createdAt ?? session.created_at ?? "",
+    updatedAt: session.updatedAt ?? session.updated_at ?? "",
+  }));
 }
 
 function writeLocalSessions(sessions: AiSession[]) {
@@ -684,13 +698,13 @@ function writeLocalSessions(sessions: AiSession[]) {
 export async function listAiSessions(): Promise<AiSessionMeta[]> {
   if (isTauri()) return invoke<AiSessionMeta[]>("list_ai_sessions");
   return readLocalSessions()
-    .map(({ id, title, created_at, updated_at }) => ({
+    .map(({ id, title, createdAt, updatedAt }) => ({
       id,
       title,
-      created_at,
-      updated_at,
+      createdAt,
+      updatedAt,
     }))
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function getAiSession(id: number): Promise<AiSession | null> {
@@ -720,7 +734,7 @@ export async function saveAiSession(input: {
       ...existing,
       title: input.title,
       messages: input.messages,
-      updated_at: now,
+      updatedAt: now,
     };
     const index = sessions.findIndex((session) => session.id === input.id);
     sessions[index] = saved;
@@ -729,8 +743,8 @@ export async function saveAiSession(input: {
       id: nextId(sessions),
       title: input.title,
       messages: input.messages,
-      created_at: now,
-      updated_at: now,
+      createdAt: now,
+      updatedAt: now,
     };
     sessions.push(saved);
   }

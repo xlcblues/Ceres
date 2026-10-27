@@ -54,7 +54,7 @@ node scripts/ui-verify.cjs
 
 ## 发布
 
-v0.1.0 已发布在 [GitHub Releases](https://github.com/xlcblues/Ceres/releases/tag/v0.1.0)，包含 NSIS 安装包与便携版，附带 SHA256 校验。
+v0.2.0 已发布在 [GitHub Releases](https://github.com/xlcblues/Ceres/releases/tag/v0.2.0)，包含 NSIS 安装包与便携版，附带 SHA256 校验。
 
 > 当前安装包未签名，首次运行可能触发 Windows SmartScreen；点击「更多信息」→「仍要运行」即可。
 

@@ -1194,9 +1194,9 @@ function TodayView({
             </div>
             <div className="energy-cell">
               <span>{t("today.net")}</span>
-              <strong className={changeClass(prediction.energyBalance)}>
-                {prediction.energyBalance > 0 ? "+" : ""}
-                {prediction.energyBalance.toFixed(0)}
+              <strong className={changeClass(prediction.netKcal)}>
+                {prediction.netKcal > 0 ? "+" : ""}
+                {prediction.netKcal.toFixed(0)}
               </strong>
               <small>{t("common.kcal")}</small>
             </div>
@@ -3053,7 +3053,7 @@ function SettingsView({
         <div className="panel-head">
           <div>
             <p className="panel-kicker">{t("settings.aboutKicker")}</p>
-            <h2>Ceres v0.1.0</h2>
+            <h2>Ceres v0.2.0</h2>
           </div>
           <LogoMark className="about-logo" />
         </div>
@@ -3064,7 +3064,7 @@ function SettingsView({
           </div>
           <div>
             <span>{t("settings.versionLabel")}</span>
-            <strong>v0.1.0</strong>
+            <strong>v0.2.0</strong>
           </div>
           <div>
             <span>{t("settings.positionLabel")}</span>
@@ -3275,8 +3275,8 @@ function AiView({
       const meta: AiSessionMeta = {
         id: saved.id,
         title: saved.title,
-        created_at: saved.created_at,
-        updated_at: saved.updated_at,
+        createdAt: saved.createdAt,
+        updatedAt: saved.updatedAt,
       };
       const rest = prev.filter((session) => session.id !== saved.id);
       return [meta, ...rest];
@@ -3508,7 +3508,10 @@ function AiView({
                   {session.title || t("ai.newChat")}
                 </span>
                 <span className="ai-history-meta">
-                  {formatFullDate(session.updated_at.slice(0, 10), language)}
+                  {formatFullDate(
+                    session.updatedAt?.slice(0, 10) ?? "",
+                    language,
+                  )}
                 </span>
                 <button
                   className="ai-history-delete"

@@ -13,6 +13,7 @@ export interface PredictionResult {
   tdee: number;
   intakeKcal: number;
   exerciseKcal: number;
+  netKcal: number;
   energyBalance: number;
   estimated: boolean;
 }
@@ -30,6 +31,7 @@ export function predictTomorrowWeight(input: PredictionInput): PredictionResult 
     tdee: 0,
     intakeKcal,
     exerciseKcal,
+    netKcal: Number((intakeKcal - exerciseKcal).toFixed(1)),
     energyBalance: intakeKcal - exerciseKcal,
     estimated: false,
   };
@@ -68,6 +70,7 @@ export function predictTomorrowWeight(input: PredictionInput): PredictionResult 
     tdee: Number(tdee.toFixed(1)),
     intakeKcal: Number(intakeKcal.toFixed(1)),
     exerciseKcal: Number(exerciseKcal.toFixed(1)),
+    netKcal: Number((intakeKcal - exerciseKcal).toFixed(1)),
     energyBalance: Number(energyBalance.toFixed(1)),
     estimated,
   };
