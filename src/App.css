@@ -2524,8 +2524,8 @@ a:focus-visible {
 
 .ai-grid {
   display: grid;
-  grid-template-columns: minmax(210px, 0.42fr) minmax(0, 1.4fr) minmax(240px, 0.5fr);
-  gap: 16px;
+  grid-template-columns: minmax(190px, 0.32fr) minmax(0, 1fr);
+  gap: 14px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -2537,21 +2537,21 @@ a:focus-visible {
 .ai-chat-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   min-height: 0;
   max-width: 100%;
-  padding: 16px;
+  padding: 14px 18px;
   overflow: hidden;
 }
 
 .ai-history-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   min-height: 0;
-  padding: 16px;
+  padding: 14px;
   overflow: hidden;
 }
 
@@ -2692,17 +2692,9 @@ a:focus-visible {
 .ai-chat-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   flex: 0 0 auto;
-}
-
-.ai-chat-head h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 650;
-  line-height: 1.25;
-  letter-spacing: 0;
 }
 
 .ai-chip {
@@ -2732,7 +2724,7 @@ a:focus-visible {
 .ai-messages {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
   min-width: 0;
   flex: 1;
@@ -2740,7 +2732,7 @@ a:focus-visible {
   overflow-x: hidden;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
-  padding: 2px 4px 4px 0;
+  padding: 2px 4px 2px 0;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
@@ -2748,11 +2740,11 @@ a:focus-visible {
 .ai-message {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  padding: 10px 0;
+  padding: 6px 0;
 }
 
 .ai-message.user {
@@ -2782,10 +2774,6 @@ a:focus-visible {
 .ai-message.user .ai-body {
   flex: 0 1 auto;
   max-width: min(680px, 86%);
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-soft);
   text-align: left;
 }
 
@@ -2797,7 +2785,7 @@ a:focus-visible {
   min-width: 0;
   max-width: 100%;
   line-height: 1.6;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--text);
 }
 
@@ -2987,7 +2975,7 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 180px;
+  min-height: 140px;
   text-align: center;
   color: var(--text-muted);
 }
@@ -3093,84 +3081,6 @@ a:focus-visible {
   gap: 8px;
 }
 
-.ai-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 2px;
-}
-
-.ai-snapshot {
-  gap: 10px;
-}
-
-.ai-snapshot.compact {
-  gap: 8px;
-}
-
-.ai-stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.ai-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 11px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-}
-
-.ai-stat span {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.ai-stat strong {
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: 0;
-  color: var(--primary);
-}
-
-.ai-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ai-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.ai-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.ai-row span {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.ai-row strong {
-  font-size: 12px;
-  font-weight: 620;
-  text-align: right;
-  white-space: nowrap;
-}
-
 .ai-guide {
   display: flex;
   flex-direction: column;
@@ -3214,16 +3124,6 @@ a:focus-visible {
   .ai-chat-panel {
     min-height: 440px;
   }
-
-  .ai-side {
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow: visible;
-  }
-
-  .ai-snapshot {
-    flex: 1 1 280px;
-  }
 }
 
 @media (max-width: 860px) {
@@ -3252,8 +3152,7 @@ a:focus-visible {
 }
 
 @media (max-width: 560px) {
-  .ai-config-form,
-  .ai-stat-grid {
+  .ai-config-form {
     grid-template-columns: 1fr;
   }
 

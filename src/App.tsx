@@ -22,7 +22,6 @@ import {
   FileSpreadsheet,
   Flame,
   GlassWater,
-  History,
   LayoutDashboard,
   Languages,
   Monitor,
@@ -3153,16 +3152,10 @@ function makeSessionTitle(messages: AiUiMessage[], fallback: string): string {
 }
 
 function AiView({
-  entries,
-  goal,
-  profile,
   unit,
   onChanged,
   onGoSettings,
 }: {
-  entries: Entry[];
-  goal: Goal | null;
-  profile: Profile | null;
   unit: Unit;
   onChanged: () => void;
   onGoSettings: () => void;
@@ -3177,7 +3170,6 @@ function AiView({
   const [pendingActions, setPendingActions] = useState<AiAction[] | null>(null);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dayLogs, setDayLogs] = useState<DayLogs | null>(null);
   const [sessions, setSessions] = useState<AiSessionMeta[]>([]);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
@@ -3196,11 +3188,6 @@ function AiView({
       .finally(() => {
         if (active) setConfigLoaded(true);
       });
-    getDayLogs(today)
-      .then((value) => {
-        if (active) setDayLogs(value);
-      })
-      .catch(() => {});
     return () => {
       active = false;
     };
@@ -3226,24 +3213,7 @@ function AiView({
     if (node) node.scrollTop = node.scrollHeight;
   }, [messages, pendingActions]);
 
-  const snapshot = useMemo(() => {
-    const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
-    const latest = sorted[0] ?? null;
-    const previous = sorted[1]?.weight ?? null;
-    const stats = computeEntryStats(entries, goal);
-    const trend = computeTrendStats(sliceByRange(entries, "7"));
-    return { latest, previous, stats, trend };
-  }, [entries, goal]);
-
   const providerName = config ? t("provider." + config.provider) : "";
-
-  const refreshLogs = async () => {
-    try {
-      setDayLogs(await getDayLogs(today));
-    } catch {
-      // keep the last snapshot when refresh fails
-    }
-  };
 
   const startNewChat = () => {
     if (sending || applying) return;
@@ -3418,7 +3388,6 @@ function AiView({
       setMessages(final);
       setPendingActions(null);
       onChanged();
-      await refreshLogs();
       try {
         await persistSession(final);
       } catch (saveError) {
@@ -3504,9 +3473,6 @@ function AiView({
             <p className="panel-kicker">{t("ai.historyKicker")}</p>
             <h2>{t("ai.historyTitle")}</h2>
           </div>
-          <span className="panel-icon-tile">
-            <History size={16} />
-          </span>
         </div>
         <button
           className="ai-new-chat"
@@ -3564,10 +3530,6 @@ function AiView({
       </aside>
       <section className="panel ai-chat-panel">
         <div className="ai-chat-head">
-          <div>
-            <p className="panel-kicker">{t("ai.chatKicker")}</p>
-            <h2>{t("ai.title")}</h2>
-          </div>
           <span className="ai-chip">
             <span className="ai-chip-dot" />
             {providerName} · {config.model}
@@ -3702,129 +3664,6 @@ function AiView({
         ) : null}
       </section>
 
-      <aside className="ai-side">
-        <section className="panel ai-snapshot">
-          <div className="panel-head">
-            <div>
-              <p className="panel-kicker">{t("ai.snapshotKicker")}</p>
-              <h2>{t("ai.snapshotTitle")}</h2>
-            </div>
-            <span className="panel-icon-tile">
-              <Activity size={16} />
-            </span>
-          </div>
-          <div className="ai-stat-grid">
-            <div className="ai-stat">
-              <span>{t("ai.latestWeight")}</span>
-              <strong>
-                {snapshot.latest
-                  ? `${formatWeight(snapshot.latest.weight, unit)} ${unitLabel(unit)}`
-                  : t("ai.none")}
-              </strong>
-            </div>
-            <div className="ai-stat">
-              <span>{t("ai.lastChange")}</span>
-              <strong>
-                {snapshot.latest && snapshot.previous != null
-                  ? formatSignedChange(
-                      snapshot.latest.weight - snapshot.previous,
-                      unit,
-                    )
-                  : t("ai.none")}
-              </strong>
-            </div>
-            <div className="ai-stat">
-              <span>{t("ai.change7d")}</span>
-              <strong>
-                {snapshot.trend.change != null
-                  ? formatSignedChange(snapshot.trend.change, unit)
-                  : t("ai.none")}
-              </strong>
-            </div>
-            <div className="ai-stat">
-              <span>{t("ai.goalProgress")}</span>
-              <strong>
-                {snapshot.stats.progressPercent != null
-                  ? `${snapshot.stats.progressPercent.toFixed(0)}%`
-                  : t("ai.none")}
-              </strong>
-            </div>
-          </div>
-          <div className="ai-list">
-            <div className="ai-row">
-              <span>{t("ai.targetWeight")}</span>
-              <strong>
-                {goal
-                  ? `${formatWeight(goal.target_weight, unit)} ${unitLabel(unit)}`
-                  : t("ai.notSet")}
-              </strong>
-            </div>
-            <div className="ai-row">
-              <span>{t("ai.targetDate")}</span>
-              <strong>
-                {goal?.target_date
-                  ? formatFullDate(goal.target_date, language)
-                  : t("ai.notSet")}
-              </strong>
-            </div>
-            <div className="ai-row">
-              <span>{t("ai.todayIntake")}</span>
-              <strong>
-                {dayLogs?.food_kcal
-                  ? `${Math.round(dayLogs.food_kcal)} ${t("common.kcal")}`
-                  : t("ai.none")}
-              </strong>
-            </div>
-            <div className="ai-row">
-              <span>{t("ai.todayBurn")}</span>
-              <strong>
-                {dayLogs?.exercise_kcal
-                  ? `${Math.round(dayLogs.exercise_kcal)} ${t("common.kcal")}`
-                  : t("ai.none")}
-              </strong>
-            </div>
-            <div className="ai-row">
-              <span>{t("ai.todayWater")}</span>
-              <strong>
-                {dayLogs?.water_ml != null
-                  ? `${Math.round(dayLogs.water_ml)} ml`
-                  : t("ai.none")}
-              </strong>
-            </div>
-          </div>
-        </section>
-        <section className="panel ai-snapshot compact">
-          <div className="panel-head">
-            <div>
-              <p className="panel-kicker">{t("ai.bodyKicker")}</p>
-              <h2>{t("ai.bodyTitle")}</h2>
-            </div>
-            <span className="panel-icon-tile">
-              <Target size={16} />
-            </span>
-          </div>
-          <div className="ai-list">
-            <div className="ai-row">
-              <span>{t("ai.height")}</span>
-              <strong>
-                {profile?.height_cm ? `${profile.height_cm} cm` : t("ai.notSet")}
-              </strong>
-            </div>
-            <div className="ai-row">
-              <span>{t("ai.age")}</span>
-              <strong>
-                {profile?.age
-                  ? t("ai.ageValue", { value: profile.age })
-                  : t("ai.notSet")}
-              </strong>
-            </div>
-            <div className="ai-row">
-              <span>{t("ai.activity")}</span>
-              <strong>{profile?.activity_level ?? t("ai.notSet")}</strong>
-            </div>
-          </div>
-        </section>
-      </aside>
     </div>
   );
 }
@@ -3988,9 +3827,6 @@ function App() {
               ) : null}
               {activeView === "ai" ? (
                 <AiView
-                  entries={entries}
-                  goal={goal}
-                  profile={profile}
                   unit={unit}
                   onChanged={() => void loadData()}
                   onGoSettings={() => setActiveView("settings")}
