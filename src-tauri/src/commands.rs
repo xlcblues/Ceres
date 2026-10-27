@@ -342,6 +342,35 @@ pub fn test_ai_connection(state: State<'_, Db>) -> Result<String, String> {
     ai::test_connection(&config)
 }
 
+#[tauri::command]
+pub fn list_ai_sessions(state: State<'_, Db>) -> Result<Vec<ai::AiSessionMeta>, String> {
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    ai::list_sessions(&conn)
+}
+
+#[tauri::command]
+pub fn get_ai_session(state: State<'_, Db>, id: i64) -> Result<Option<ai::AiSession>, String> {
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    ai::get_session(&conn, id)
+}
+
+#[tauri::command]
+pub fn save_ai_session(
+    state: State<'_, Db>,
+    id: Option<i64>,
+    title: String,
+    messages: Vec<ai::StoredChatMessage>,
+) -> Result<ai::AiSession, String> {
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    ai::save_session(&conn, id, &title, &messages)
+}
+
+#[tauri::command]
+pub fn delete_ai_session(state: State<'_, Db>, id: i64) -> Result<bool, String> {
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    ai::delete_session(&conn, id)
+}
+
 fn ai_config_from_state(state: &State<'_, Db>) -> Result<ai::AiConfig, String> {
     let conn = state.0.lock().map_err(|error| error.to_string())?;
     ai::get_config(&conn)?.ok_or_else(|| "请先在设置中配置 AI".to_string())

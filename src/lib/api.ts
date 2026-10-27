@@ -595,6 +595,28 @@ export interface AiChatResponse {
   actions: AiAction[];
 }
 
+export interface StoredChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  actions: AiAction[];
+  appliedSummary?: string | null;
+}
+
+export interface AiSessionMeta {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AiSession {
+  id: number;
+  title: string;
+  messages: StoredChatMessage[];
+  created_at: string;
+  updated_at: string;
+}
+
 export type AiStreamEvent =
   | { type: "delta"; text: string }
   | { type: "done"; actions: AiAction[] };
@@ -647,6 +669,82 @@ export async function saveAiConfig(config: AiConfig): Promise<AiConfig> {
 export async function testAiConnection(): Promise<string> {
   if (isTauri()) return invoke<string>("test_ai_connection");
   throw new Error("浏览器演示模式暂不支持 AI 连接测试");
+}
+
+const AI_SESSIONS_KEY = "ceres.ai_sessions";
+
+function readLocalSessions(): AiSession[] {
+  return readLocal<AiSession[]>(AI_SESSIONS_KEY, []);
+}
+
+function writeLocalSessions(sessions: AiSession[]) {
+  writeLocal(AI_SESSIONS_KEY, sessions);
+}
+
+export async function listAiSessions(): Promise<AiSessionMeta[]> {
+  if (isTauri()) return invoke<AiSessionMeta[]>("list_ai_sessions");
+  return readLocalSessions()
+    .map(({ id, title, created_at, updated_at }) => ({
+      id,
+      title,
+      created_at,
+      updated_at,
+    }))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+}
+
+export async function getAiSession(id: number): Promise<AiSession | null> {
+  if (isTauri()) return invoke<AiSession | null>("get_ai_session", { id });
+  return readLocalSessions().find((session) => session.id === id) ?? null;
+}
+
+export async function saveAiSession(input: {
+  id?: number;
+  title: string;
+  messages: StoredChatMessage[];
+}): Promise<AiSession> {
+  if (isTauri()) {
+    return invoke<AiSession>("save_ai_session", {
+      id: input.id ?? null,
+      title: input.title,
+      messages: input.messages,
+    });
+  }
+  const sessions = readLocalSessions();
+  const now = new Date().toISOString();
+  let saved: AiSession;
+  if (input.id != null) {
+    const existing = sessions.find((session) => session.id === input.id);
+    if (!existing) throw new Error("会话不存在");
+    saved = {
+      ...existing,
+      title: input.title,
+      messages: input.messages,
+      updated_at: now,
+    };
+    const index = sessions.findIndex((session) => session.id === input.id);
+    sessions[index] = saved;
+  } else {
+    saved = {
+      id: nextId(sessions),
+      title: input.title,
+      messages: input.messages,
+      created_at: now,
+      updated_at: now,
+    };
+    sessions.push(saved);
+  }
+  writeLocalSessions(sessions);
+  return saved;
+}
+
+export async function deleteAiSession(id: number): Promise<boolean> {
+  if (isTauri()) return invoke<boolean>("delete_ai_session", { id });
+  const sessions = readLocalSessions();
+  const next = sessions.filter((session) => session.id !== id);
+  if (next.length === sessions.length) return false;
+  writeLocalSessions(next);
+  return true;
 }
 
 export async function aiChat(

@@ -44,7 +44,11 @@ pub fn run() {
             commands::ai_estimate_food,
             commands::ai_estimate_exercise,
             commands::ai_apply_actions,
-            commands::test_ai_connection
+            commands::test_ai_connection,
+            commands::list_ai_sessions,
+            commands::get_ai_session,
+            commands::save_ai_session,
+            commands::delete_ai_session
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

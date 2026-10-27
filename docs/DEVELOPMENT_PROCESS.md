@@ -153,7 +153,7 @@ CREATE TABLE setting (
 );
 ```
 
-> 实际表结构以 `src-tauri/src/db.rs` 的迁移为准：v2 新增 `profile`、`food_catalog`、`exercise_catalog`、`food_log`、`exercise_log`、`water_log`，v3 为 `goal` 增加 `target_date`。
+> 实际表结构以 `src-tauri/src/db.rs` 的迁移为准：v2 新增 `profile`、`food_catalog`、`exercise_catalog`、`food_log`、`exercise_log`、`water_log`，v3 为 `goal` 增加 `target_date`，v4 新增 `ai_session` 会话表用于 AI 多轮对话与历史记录。
 
 ### 4.3 模块划分
 

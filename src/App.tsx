@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   Flame,
   GlassWater,
+  History,
   LayoutDashboard,
   Languages,
   Monitor,
@@ -68,6 +69,10 @@ import {
   saveProfile,
   saveUnit,
   aiApplyActions,
+  deleteAiSession,
+  getAiSession,
+  listAiSessions,
+  saveAiSession,
   testAiConnection,
   aiChatStream,
   aiEstimateExercise,
@@ -79,6 +84,7 @@ import {
   UNIT_OPTIONS,
   type AiAction,
   type AiConfig,
+  type AiSessionMeta,
   type ChatMessage,
   type DayLogs,
   type Entry,
@@ -87,6 +93,7 @@ import {
   type FoodCatalogItem,
   type Goal,
   type Profile,
+  type StoredChatMessage,
   type Unit,
 } from "./lib/api";
 import {
@@ -3135,6 +3142,16 @@ function cleanStreamingAssistantText(text: string): string {
   return trimmed;
 }
 
+function makeSessionTitle(messages: AiUiMessage[], fallback: string): string {
+  const firstUser = messages.find((message) => message.role === "user");
+  if (!firstUser) return fallback;
+  const text = firstUser.content.replace(/\s+/g, " ").trim();
+  if (!text) return fallback;
+  const ascii = [...text].every((char) => char.charCodeAt(0) < 128);
+  const max = ascii ? 42 : 22;
+  return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
+}
+
 function AiView({
   entries,
   goal,
@@ -3161,7 +3178,11 @@ function AiView({
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dayLogs, setDayLogs] = useState<DayLogs | null>(null);
+  const [sessions, setSessions] = useState<AiSessionMeta[]>([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const messagesStateRef = useRef<AiUiMessage[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -3184,6 +3205,21 @@ function AiView({
       active = false;
     };
   }, [today]);
+
+  useEffect(() => {
+    let active = true;
+    listAiSessions()
+      .then((items) => {
+        if (active) setSessions(items);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setSessionsLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const node = messagesRef.current;
@@ -3209,6 +3245,74 @@ function AiView({
     }
   };
 
+  const startNewChat = () => {
+    if (sending || applying) return;
+    setActiveSessionId(null);
+    setPendingActions(null);
+    setError(null);
+    messagesStateRef.current = [];
+    messagesRef.current = null;
+    setMessages([]);
+  };
+
+  const loadSession = async (id: number) => {
+    if (sending || applying || id === activeSessionId) return;
+    setError(null);
+    try {
+      const session = await getAiSession(id);
+      if (!session) return;
+      const restored: AiUiMessage[] = session.messages.map((message) => ({
+        role: message.role === "user" ? "user" : "assistant",
+        content: message.content,
+        actions: message.actions,
+        appliedSummary: message.appliedSummary,
+      }));
+      messagesStateRef.current = restored;
+      setMessages(restored);
+      setActiveSessionId(id);
+      setPendingActions(null);
+    } catch (caught) {
+      setError(String(caught));
+    }
+  };
+
+  const handleDeleteSession = async (id: number) => {
+    if (sending || applying) return;
+    try {
+      await deleteAiSession(id);
+      setSessions((prev) => prev.filter((session) => session.id !== id));
+      if (activeSessionId === id) startNewChat();
+    } catch (caught) {
+      setError(String(caught));
+    }
+  };
+
+  const persistSession = async (list: AiUiMessage[]) => {
+    if (!list.length) return;
+    const stored: StoredChatMessage[] = list.map((message) => ({
+      role: message.role,
+      content: message.content,
+      actions: message.actions ?? [],
+      appliedSummary: message.appliedSummary ?? null,
+    }));
+    const saved = await saveAiSession({
+      id: activeSessionId ?? undefined,
+      title: makeSessionTitle(list, t("ai.newChat")),
+      messages: stored,
+    });
+    setActiveSessionId(saved.id);
+    setSessions((prev) => {
+      const meta: AiSessionMeta = {
+        id: saved.id,
+        title: saved.title,
+        created_at: saved.created_at,
+        updated_at: saved.updated_at,
+      };
+      const rest = prev.filter((session) => session.id !== saved.id);
+      return [meta, ...rest];
+    });
+  };
+
   const handleSend = async (raw: string) => {
     const prompt = raw.trim();
     if (!prompt || sending) return;
@@ -3220,46 +3324,67 @@ function AiView({
     setSending(true);
     setDraft("");
     setPendingActions(null);
-    setMessages((prev) => [...prev, { role: "user", content: prompt }]);
-    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+    const working = [
+      ...messagesStateRef.current,
+      { role: "user" as const, content: prompt },
+      { role: "assistant" as const, content: "" },
+    ];
+    messagesStateRef.current = working;
+    setMessages(working);
     try {
-      const history: ChatMessage[] = messages.map((item) => ({
-        role: item.role,
-        content: item.content,
-      }));
+      const history: ChatMessage[] = working
+        .slice(0, -2)
+        .filter((item) => item.content.trim())
+        .map((item) => ({ role: item.role, content: item.content }));
       const response = await aiChatStream(
         prompt,
         history,
         (delta) => {
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            if (last && last.role === "assistant") {
-              next[next.length - 1] = {
-                ...last,
-                content: last.content + delta,
-              };
-              return next;
-            }
-            return [...next, { role: "assistant", content: delta }];
-          });
+          const next = [...working];
+          const last = next[next.length - 1];
+          if (last && last.role === "assistant") {
+            next[next.length - 1] = {
+              ...last,
+              content: last.content + delta,
+            };
+            working.length = 0;
+            working.push(...next);
+          }
+          messagesStateRef.current = next;
+          setMessages(next);
         },
         (actions) => setPendingActions(actions.length ? actions : null),
       );
-      setMessages((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last && last.role === "assistant") {
-          next[next.length - 1] = {
-            ...last,
-            content: response.text || last.content,
-            actions: response.actions,
-          };
-        }
-        return next;
-      });
+      const final = [...working];
+      const last = final[final.length - 1];
+      if (last && last.role === "assistant") {
+        final[final.length - 1] = {
+          ...last,
+          content: response.text || last.content,
+          actions: response.actions,
+        };
+      }
+      messagesStateRef.current = final;
+      setMessages(final);
+      try {
+        await persistSession(final);
+      } catch (saveError) {
+        setError(String(saveError));
+      }
     } catch (caught) {
+      const final = [...working];
+      const last = final[final.length - 1];
+      if (last && last.role === "assistant" && !last.content.trim()) {
+        final.pop();
+      }
+      messagesStateRef.current = final;
+      setMessages(final);
       setError(String(caught));
+      try {
+        await persistSession(final);
+      } catch {
+        // keep the original stream error visible
+      }
     } finally {
       setSending(false);
     }
@@ -3284,17 +3409,21 @@ function AiView({
       const summary = created
         ? `${result.message}；${created}`
         : result.message;
-      setMessages((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last && last.role === "assistant") {
-          next[next.length - 1] = { ...last, appliedSummary: summary };
-        }
-        return next;
-      });
+      const final = [...messagesStateRef.current];
+      const last = final[final.length - 1];
+      if (last && last.role === "assistant") {
+        final[final.length - 1] = { ...last, appliedSummary: summary };
+      }
+      messagesStateRef.current = final;
+      setMessages(final);
       setPendingActions(null);
       onChanged();
       await refreshLogs();
+      try {
+        await persistSession(final);
+      } catch (saveError) {
+        setError(String(saveError));
+      }
     } catch (caught) {
       setError(String(caught));
     } finally {
@@ -3369,6 +3498,70 @@ function AiView({
 
   return (
     <div className="ai-grid">
+      <aside className="panel ai-history-panel">
+        <div className="ai-history-head">
+          <div>
+            <p className="panel-kicker">{t("ai.historyKicker")}</p>
+            <h2>{t("ai.historyTitle")}</h2>
+          </div>
+          <span className="panel-icon-tile">
+            <History size={16} />
+          </span>
+        </div>
+        <button
+          className="ai-new-chat"
+          type="button"
+          disabled={sending || applying}
+          onClick={startNewChat}
+        >
+          <Plus size={14} /> {t("ai.newChat")}
+        </button>
+        <div className="ai-history-list">
+          {!sessionsLoaded ? (
+            <p className="ai-history-empty">{t("ai.historyLoading")}</p>
+          ) : sessions.length === 0 ? (
+            <p className="ai-history-empty">{t("ai.noHistory")}</p>
+          ) : (
+            sessions.map((session) => (
+              <div
+                key={session.id}
+                className={`ai-history-item${
+                  session.id === activeSessionId ? " active" : ""
+                }`}
+                role="button"
+                tabIndex={0}
+                onClick={() => void loadSession(session.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    void loadSession(session.id);
+                  }
+                }}
+              >
+                <span className="ai-history-title">
+                  {session.title || t("ai.newChat")}
+                </span>
+                <span className="ai-history-meta">
+                  {formatFullDate(session.updated_at.slice(0, 10), language)}
+                </span>
+                <button
+                  className="ai-history-delete"
+                  type="button"
+                  title={t("ai.deleteSession")}
+                  aria-label={t("ai.deleteSession")}
+                  disabled={sending || applying}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void handleDeleteSession(session.id);
+                  }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
       <section className="panel ai-chat-panel">
         <div className="ai-chat-head">
           <div>

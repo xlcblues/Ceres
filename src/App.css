@@ -2524,7 +2524,7 @@ a:focus-visible {
 
 .ai-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.55fr);
+  grid-template-columns: minmax(210px, 0.42fr) minmax(0, 1.4fr) minmax(240px, 0.5fr);
   gap: 16px;
   width: 100%;
   max-width: 100%;
@@ -2543,6 +2543,150 @@ a:focus-visible {
   max-width: 100%;
   padding: 16px;
   overflow: hidden;
+}
+
+.ai-history-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.ai-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.ai-history-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: var(--text-strong);
+}
+
+.ai-new-chat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ai-new-chat:hover:not(:disabled) {
+  border-color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 20%);
+}
+
+.ai-new-chat:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ai-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+.ai-history-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.ai-history-item:hover {
+  background: var(--bg-soft);
+}
+
+.ai-history-item.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ai-history-title {
+  overflow: hidden;
+  padding-right: 26px;
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.4;
+  color: var(--text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-history-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ai-history-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.ai-history-item:hover .ai-history-delete,
+.ai-history-item:focus-within .ai-history-delete {
+  opacity: 1;
+}
+
+.ai-history-delete:hover {
+  background: var(--negative-soft);
+  color: var(--negative);
+}
+
+.ai-history-delete:disabled {
+  cursor: default;
+}
+
+.ai-history-empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-muted);
 }
 
 .ai-chat-head {
@@ -2612,7 +2756,7 @@ a:focus-visible {
 }
 
 .ai-message.user {
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .ai-avatar {
@@ -2636,8 +2780,13 @@ a:focus-visible {
 }
 
 .ai-message.user .ai-body {
-  flex: 1;
-  text-align: right;
+  flex: 0 1 auto;
+  max-width: min(680px, 86%);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  text-align: left;
 }
 
 .ai-content {
@@ -2821,10 +2970,6 @@ a:focus-visible {
   color: var(--text-muted);
 }
 
-.ai-message.user .ai-inline-actions {
-  text-align: right;
-}
-
 .ai-applied {
   display: block;
   margin-top: 8px;
@@ -2834,10 +2979,6 @@ a:focus-visible {
   font-style: normal;
   color: var(--positive);
   text-align: left;
-}
-
-.ai-message.user .ai-applied {
-  text-align: right;
 }
 
 .ai-welcome {

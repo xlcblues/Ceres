@@ -502,6 +502,161 @@ pub enum AiAction {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct StoredChatMessage {
+    pub role: String,
+    pub content: String,
+    #[serde(default)]
+    pub actions: Vec<AiAction>,
+    #[serde(rename = "appliedSummary", default)]
+    pub applied_summary: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiSessionMeta {
+    pub id: i64,
+    pub title: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiSession {
+    pub id: i64,
+    pub title: String,
+    pub messages: Vec<StoredChatMessage>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+pub fn list_sessions(conn: &Connection) -> Result<Vec<AiSessionMeta>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, title, created_at, updated_at
+             FROM ai_session
+             ORDER BY updated_at DESC, id DESC",
+        )
+        .map_err(|error| error.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(AiSessionMeta {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                created_at: row.get(2)?,
+                updated_at: row.get(3)?,
+            })
+        })
+        .map_err(|error| error.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|error| error.to_string())
+}
+
+pub fn get_session(conn: &Connection, id: i64) -> Result<Option<AiSession>, String> {
+    let row: Option<(i64, String, String, String, String)> = conn
+        .query_row(
+            "SELECT id, title, messages_json, created_at, updated_at
+             FROM ai_session WHERE id = ?1",
+            params![id],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                ))
+            },
+        )
+        .optional()
+        .map_err(|error| error.to_string())?;
+    match row {
+        Some((session_id, title, messages_json, created_at, updated_at)) => {
+            let messages: Vec<StoredChatMessage> =
+                serde_json::from_str(&messages_json).map_err(|error| error.to_string())?;
+            Ok(Some(AiSession {
+                id: session_id,
+                title,
+                messages,
+                created_at,
+                updated_at,
+            }))
+        }
+        None => Ok(None),
+    }
+}
+
+pub fn save_session(
+    conn: &Connection,
+    id: Option<i64>,
+    title: &str,
+    messages: &[StoredChatMessage],
+) -> Result<AiSession, String> {
+    let messages_json = serde_json::to_string(messages).map_err(|error| error.to_string())?;
+    let title = title.trim().to_string();
+    let session = match id {
+        Some(session_id) => {
+            let updated = conn
+                .execute(
+                    "UPDATE ai_session
+                     SET title = ?1, messages_json = ?2, updated_at = datetime('now')
+                     WHERE id = ?3",
+                    params![title, messages_json, session_id],
+                )
+                .map_err(|error| error.to_string())?;
+            if updated == 0 {
+                return Err("会话不存在".to_string());
+            }
+            let (created_at, updated_at): (String, String) = conn
+                .query_row(
+                    "SELECT created_at, updated_at FROM ai_session WHERE id = ?1",
+                    params![session_id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .map_err(|error| error.to_string())?;
+            AiSession {
+                id: session_id,
+                title,
+                messages: messages.to_vec(),
+                created_at,
+                updated_at,
+            }
+        }
+        None => {
+            conn.execute(
+                "INSERT INTO ai_session (title, messages_json) VALUES (?1, ?2)",
+                params![title, messages_json],
+            )
+            .map_err(|error| error.to_string())?;
+            let session_id = conn.last_insert_rowid();
+            let (created_at, updated_at): (String, String) = conn
+                .query_row(
+                    "SELECT created_at, updated_at FROM ai_session WHERE id = ?1",
+                    params![session_id],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .map_err(|error| error.to_string())?;
+            AiSession {
+                id: session_id,
+                title,
+                messages: messages.to_vec(),
+                created_at,
+                updated_at,
+            }
+        }
+    };
+    Ok(session)
+}
+
+pub fn delete_session(conn: &Connection, id: i64) -> Result<bool, String> {
+    let removed = conn
+        .execute("DELETE FROM ai_session WHERE id = ?1", params![id])
+        .map_err(|error| error.to_string())?;
+    Ok(removed > 0)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AiApplyResult {
     pub applied: usize,
     pub created_foods: Vec<String>,

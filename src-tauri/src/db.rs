@@ -195,6 +195,22 @@ pub fn migrate(conn: &Connection) -> Result<(), rusqlite::Error> {
             ",
         )?;
     }
+    if version < 4 {
+        conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS ai_session (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              title TEXT NOT NULL DEFAULT '',
+              messages_json TEXT NOT NULL DEFAULT '[]',
+              created_at TEXT NOT NULL DEFAULT (datetime('now')),
+              updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_ai_session_updated_at
+              ON ai_session(updated_at DESC);
+            PRAGMA user_version = 4;
+            ",
+        )?;
+    }
     Ok(())
 }
 
@@ -935,5 +951,65 @@ mod tests {
         assert!(delete_food_log(&conn, food_log.id).unwrap());
         assert!(delete_exercise_log(&conn, exercise_log.id).unwrap());
         assert!(!delete_food_log(&conn, food_log.id).unwrap());
+    }
+
+    #[test]
+    fn ai_sessions_persist_messages_and_update() {
+        use crate::ai::{
+            delete_session, get_session, list_sessions, save_session, StoredChatMessage,
+        };
+
+        let conn = test_conn();
+        let created = save_session(
+            &conn,
+            None,
+            "第一次对话",
+            &[
+                StoredChatMessage {
+                    role: "user".into(),
+                    content: "今天吃了什么".into(),
+                    actions: vec![],
+                    applied_summary: None,
+                },
+                StoredChatMessage {
+                    role: "assistant".into(),
+                    content: "已记录 2 项".into(),
+                    actions: vec![],
+                    applied_summary: Some("已加入 2 项".into()),
+                },
+            ],
+        )
+        .unwrap();
+        assert!(created.id > 0);
+        assert_eq!(created.title, "第一次对话");
+        assert_eq!(created.messages.len(), 2);
+
+        let metas = list_sessions(&conn).unwrap();
+        assert_eq!(metas.len(), 1);
+        assert_eq!(metas[0].id, created.id);
+
+        let updated = save_session(
+            &conn,
+            Some(created.id),
+            "第二轮",
+            &[StoredChatMessage {
+                role: "user".into(),
+                content: "再来一轮".into(),
+                actions: vec![],
+                applied_summary: None,
+            }],
+        )
+        .unwrap();
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.title, "第二轮");
+        assert_eq!(updated.messages.len(), 1);
+
+        let loaded = get_session(&conn, created.id).unwrap().unwrap();
+        assert_eq!(loaded.messages[0].role, "user");
+        assert_eq!(loaded.messages[0].content, "再来一轮");
+
+        assert!(delete_session(&conn, created.id).unwrap());
+        assert!(!delete_session(&conn, created.id).unwrap());
+        assert!(get_session(&conn, created.id).unwrap().is_none());
     }
 }
