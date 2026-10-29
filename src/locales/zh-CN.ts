@@ -1,7 +1,7 @@
 export const zhCN = {
   app: {
     tagline: "本地记录 · 安静减重",
-    foot: "本地数据 · v0.2.1",
+    foot: "本地数据 · v0.2.2",
     loading: "正在载入",
     loadingDesc: "读取本地记录…",
     loadFailed: "读取失败",
@@ -176,6 +176,7 @@ export const zhCN = {
     milestoneKicker: "里程碑",
     milestoneTitle: "减重节点",
     lostWeight: "减重 {value}",
+    milestoneGoal: "目标 {percent}% · 减重 {value}",
     reached: "已达成",
     remaining: "还差 {value}",
     dataKicker: "数据",

@@ -244,9 +244,12 @@ export function computeTrendStats(entries: Entry[]): TrendStats {
 }
 
 export const LOSS_MILESTONES = [1, 2.5, 5, 7.5, 10];
+export const GOAL_MILESTONE_PERCENTS = [10, 25, 50, 75, 100];
 
 export interface LossMilestone {
   threshold: number;
+  percent: number | null;
+  targetWeight: number | null;
   reached: boolean;
   date: string | null;
   remaining: number | null;
@@ -308,24 +311,50 @@ export function computeMilestones(
       ? Number((currentWeight - baseline).toFixed(2))
       : null;
 
-  const milestones: LossMilestone[] = LOSS_MILESTONES.map((threshold) => {
-    let reached = false;
-    let date: string | null = null;
-    if (baseline !== null) {
-      for (const entry of sorted) {
-        if (baseline - entry.weight >= threshold - 1e-9) {
-          reached = true;
-          date = entry.date;
-          break;
+  const goalStartWeight = goal?.start_weight ?? null;
+  const goalRange =
+    goalStartWeight != null && goal != null
+      ? Number((goalStartWeight - goal.target_weight).toFixed(2))
+      : null;
+  const milestoneDefs =
+    goalRange !== null && goalRange > 0.001
+      ? GOAL_MILESTONE_PERCENTS.map((percent) => {
+          const loss = Number(((goalRange * percent) / 100).toFixed(2));
+          return {
+            threshold: loss,
+            percent,
+            targetWeight:
+              goalStartWeight != null
+                ? Number((goalStartWeight - loss).toFixed(2))
+                : null,
+          };
+        })
+      : LOSS_MILESTONES.map((threshold) => ({
+          threshold,
+          percent: null,
+          targetWeight: null,
+        }));
+
+  const milestones: LossMilestone[] = milestoneDefs.map(
+    ({ threshold, percent, targetWeight }) => {
+      let reached = false;
+      let date: string | null = null;
+      if (baseline !== null) {
+        for (const entry of sorted) {
+          if (baseline - entry.weight >= threshold - 1e-9) {
+            reached = true;
+            date = entry.date;
+            break;
+          }
         }
       }
-    }
-    const remaining =
-      baseline !== null && currentWeight !== null
-        ? Number((threshold - (baseline - currentWeight)).toFixed(2))
-        : null;
-    return { threshold, reached, date, remaining };
-  });
+      const remaining =
+        baseline !== null && currentWeight !== null
+          ? Number((threshold - (baseline - currentWeight)).toFixed(2))
+          : null;
+      return { threshold, percent, targetWeight, reached, date, remaining };
+    },
+  );
 
   return {
     streakDays: currentStreak(dates),

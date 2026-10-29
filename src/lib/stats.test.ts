@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Entry, Goal } from "./api";
 import { addDays, todayKey } from "./date";
 import {
+  GOAL_MILESTONE_PERCENTS,
+  LOSS_MILESTONES,
   computeEntryStats,
   computeMilestones,
   computeTrendStats,
@@ -134,11 +136,37 @@ describe("trend statistics", () => {
     expect(insights.streakDays).toBe(15);
     expect(insights.longestStreak).toBe(15);
     expect(insights.totalChange).toBeCloseTo(-7.0, 1);
-    expect(insights.milestones.find((item) => item.threshold === 5)?.reached).toBe(
+    expect(insights.milestones.map((item) => item.percent)).toEqual(
+      GOAL_MILESTONE_PERCENTS,
+    );
+    expect(insights.milestones.map((item) => item.threshold)).toEqual([
+      0.76, 1.9, 3.8, 5.7, 7.6,
+    ]);
+    expect(
+      insights.milestones.find((item) => item.percent === 75)?.reached,
+    ).toBe(
       true,
     );
-    expect(insights.milestones.find((item) => item.threshold === 10)?.reached).toBe(
+    expect(
+      insights.milestones.find((item) => item.percent === 100)?.reached,
+    ).toBe(
       false,
+    );
+    expect(
+      insights.milestones.find((item) => item.percent === 100)?.targetWeight,
+    ).toBeCloseTo(68, 1);
+  });
+
+  it("falls back to fixed milestones without a goal", () => {
+    const entries = Array.from({ length: 5 }, (_, index) =>
+      entry(addDays(todayKey(), -(4 - index)), 74 - index * 0.2),
+    );
+    const insights = computeMilestones(entries, null);
+    expect(insights.milestones.map((item) => item.threshold)).toEqual(
+      LOSS_MILESTONES,
+    );
+    expect(insights.milestones.every((item) => item.percent === null)).toBe(
+      true,
     );
   });
 });

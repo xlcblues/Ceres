@@ -1,7 +1,7 @@
 export const enUS = {
   app: {
     tagline: "Local-first · Quiet weight loss",
-    foot: "Local data · v0.2.1",
+    foot: "Local data · v0.2.2",
     loading: "Loading",
     loadingDesc: "Reading local records...",
     loadFailed: "Failed to load",
@@ -176,6 +176,7 @@ export const enUS = {
     milestoneKicker: "Milestone",
     milestoneTitle: "Weight-loss milestones",
     lostWeight: "Lost {value}",
+    milestoneGoal: "Goal {percent}% · Lost {value}",
     reached: "Reached",
     remaining: "Remaining {value}",
     dataKicker: "Data",

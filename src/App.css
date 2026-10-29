@@ -1830,6 +1830,10 @@ a:focus-visible {
 .milestone-head span {
   font-size: 13px;
   font-weight: 620;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .milestone-head em {

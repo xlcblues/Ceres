@@ -1509,9 +1509,14 @@ function TrendView({
                 >
                   <div className="milestone-head">
                     <span>
-                      {t("trend.lostWeight", {
-                        value: `${formatWeight(milestone.threshold, unit)} ${unitLabel(unit)}`,
-                      })}
+                      {milestone.percent != null
+                        ? t("trend.milestoneGoal", {
+                            percent: milestone.percent,
+                            value: `${formatWeight(milestone.threshold, unit)} ${unitLabel(unit)}`,
+                          })
+                        : t("trend.lostWeight", {
+                            value: `${formatWeight(milestone.threshold, unit)} ${unitLabel(unit)}`,
+                          })}
                     </span>
                     {milestone.reached ? (
                       <em>
@@ -3057,7 +3062,7 @@ function SettingsView({
         <div className="panel-head">
           <div>
             <p className="panel-kicker">{t("settings.aboutKicker")}</p>
-            <h2>Ceres v0.2.1</h2>
+            <h2>Ceres v0.2.2</h2>
           </div>
           <LogoMark className="about-logo" />
         </div>
@@ -3068,7 +3073,7 @@ function SettingsView({
           </div>
           <div>
             <span>{t("settings.versionLabel")}</span>
-            <strong>v0.2.1</strong>
+            <strong>v0.2.2</strong>
           </div>
           <div>
             <span>{t("settings.positionLabel")}</span>
