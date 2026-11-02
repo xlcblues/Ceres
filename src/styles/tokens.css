@@ -29,6 +29,9 @@
   --negative: #b4552f;
   --negative-soft: rgba(180, 85, 47, 0.12);
   --shadow: 0 12px 32px rgba(16, 29, 23, 0.08);
+  --shadow-sm: 0 2px 10px rgba(16, 29, 23, 0.06);
+  --shadow-lg: 0 22px 54px rgba(16, 29, 23, 0.16);
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.52);
   --ring-track: #e7e3d7;
   --spark-fill: rgba(23, 59, 47, 0.09);
 
@@ -64,6 +67,9 @@
   --negative: #e29a76;
   --negative-soft: rgba(226, 154, 118, 0.16);
   --shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 22px 54px rgba(0, 0, 0, 0.46);
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
   --ring-track: rgba(247, 243, 233, 0.12);
   --spark-fill: rgba(227, 166, 60, 0.12);
 }

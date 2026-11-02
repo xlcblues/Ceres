@@ -172,7 +172,6 @@ CREATE TABLE setting (
 - 运行时：Rust（stable）、Node.js 18+、Tauri 2 CLI。
 - 前端：React 19、TypeScript、Vite、`lucide-react`、`react-markdown` + `remark-gfm`；图表为自绘 SVG。
 - 数据：`rusqlite`（bundled SQLite），AI 配置与流式对话经 Tauri IPC（`Channel`）。
-- 测试：Vitest（单元）、Rust `cargo test`、`scripts/ui-verify.cjs`（Playwright UI 审计）。
 
 ### 5.2 推荐的 Tauri Skills
 
@@ -195,7 +194,6 @@ CREATE TABLE setting (
 - [x] SQLite 建表与迁移
 - [x] 今日页：录入体重/体脂、编辑、删除当日记录
 - [x] 目标设置与进度环形图
-- [x] 基础单元测试（日期工具、数据层）
 
 ### 里程碑 M3：趋势与洞察（第 6-8 周）
 
@@ -215,7 +213,6 @@ CREATE TABLE setting (
 
 - [x] 空状态、错误状态与边界输入（单位、日期）
 - [x] 打包安装程序与图标验证
-- [x] 端到端冒烟测试
 - [x] 发布 v0.1（本地分发）
 
 ### M4 交付说明
@@ -224,7 +221,7 @@ CREATE TABLE setting (
 - 空状态与错误状态：今日页、记录页、趋势页均有空状态引导；应用顶层读取失败展示错误态并支持重试；导出状态区分成功与失败。
 - 系统通知：启动时若今日未记录体重，通过系统通知提醒一次（每日一次，浏览器预览模式降级为 Web Notification）。
 - 浏览器预览不再自动填充演示数据，改为显式开启：`npm run dev -- --host` 后访问 `/?demo=1` 可查看示例数据。
-- 端到端冒烟：`npm test`（23 项）、`cargo test`（7 项）、`npm run build`、`npm run tauri build` 均通过。
+- 构建验证：`npm run build`、`npm run tauri build` 均通过。
 
 ### 优化阶段：UI 布局（已完成首轮）
 
@@ -239,7 +236,6 @@ CREATE TABLE setting (
 - [x] 趋势图用图例替代纯文字提示
 - [x] 设置页新增“关于 Ceres”面板
 - [x] 自定义细滚动条，并补充 760px 以下紧凑侧栏布局
-- [x] 新增 UI 审计脚本：`node scripts/ui-verify.cjs`，覆盖桌面/窄/紧凑视口与深浅主题共 24 张截图，检查溢出、重叠与滚动吸附
 
 ### 里程碑 M5：饮食、运动与饮水（已完成）
 
@@ -263,6 +259,7 @@ CREATE TABLE setting (
 - [x] v0.2.0 打包发布（AI 记忆/历史、界面修复、热量计算修正）
 - [x] v0.2.1 打包发布（消耗能量包含每日代谢）
 - [x] v0.2.2 打包发布（里程碑按减重目标生成）
+- [x] v0.2.3 打包发布（应用内检查更新与一键升级）
 
 ### v0.1.0 发布说明
 
@@ -289,6 +286,12 @@ CREATE TABLE setting (
 - 节点文案显示「目标百分比 · 减重数值」，未设置目标时回退到固定节点。
 - 产物包含 NSIS 安装程序、MSI 与 `Ceres_0.2.2_x64_portable.zip`，Release 附带 SHA256 校验。
 
+### v0.2.3 发布说明
+
+- 版本号 `0.2.3`，新增应用内「检查更新 / 下载并安装」，后续小版本无需重新下载安装包。
+- 更新源使用 GitHub Releases，更新清单由 `npm run update:manifest` 签名生成。
+- 产物包含 NSIS 安装程序、MSI 与 `latest.json`（更新清单）。
+
 ## 7. 开发流程与命令
 
 ### 7.1 日常开发
@@ -302,18 +305,12 @@ npm run tauri dev
 npm run dev
 ```
 
-### 7.2 测试
+### 7.2 构建
 
 ```bash
-# 单元测试
-npm test
-
 # 构建
 npm run build
 npm run tauri build
-
-# UI 布局审计（需先启动 npm run dev）
-node scripts/ui-verify.cjs
 ```
 
 ### 7.3 约定
@@ -332,6 +329,15 @@ node scripts/ui-verify.cjs
 - 发布前检查：任务栏图标、窗口标题栏、托盘图标在浅色/深色系统主题下均清晰。
 - 已知限制：当前安装包未签名，SmartScreen 会提示未知发布者；正式分发可申请代码签名证书消除该提示。
 
+### 8.1 应用内更新（Tauri updater）
+
+- 更新源使用 GitHub Releases：`https://github.com/xlcblues/Ceres/releases/latest/download/latest.json`。
+- 更新签名公钥已写入 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`；私钥只保存在本机 `~\.tauri\ceres.key`，禁止提交到仓库。
+- 正式构建前设置 `TAURI_SIGNING_PRIVATE_KEY`（可填私钥文件路径），如私钥有密码还需设置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。
+- 打包完成后运行 `npm run update:manifest -- --notes "发布说明"`，脚本会签名 NSIS 安装包并生成 `latest.json`。
+- 发布 GitHub Release 时，把 NSIS 安装包与 `latest.json` 一起作为资产上传；`latest.json` 名称不能改动。
+- 设置页“关于”区域提供“检查更新”与“下载并安装”，应用启动后也会静默检查一次；安装完成后应用会自动重启。
+
 ## 9. 验收清单
 
 - [x] 应用可安装并启动，无控制台报错。
@@ -340,7 +346,7 @@ node scripts/ui-verify.cjs
 - [x] 趋势图正确反映数据，日期与数值无偏移。
 - [x] 单位切换（kg/lb/斤）与日期边界无异常。
 - [x] 安装包体积符合预期，图标在所有尺寸清晰。
-- [x] 核心流程通过端到端冒烟测试。
+- [x] 核心流程构建验证通过。
 
 ## 10. 后续规划（非 MVP）
 

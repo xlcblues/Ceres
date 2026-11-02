@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Ceres",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "identifier": "com.ceres.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -13,10 +13,11 @@
     "windows": [
       {
         "title": "Ceres",
-        "width": 1180,
-        "height": 760,
+        "width": 1280,
+        "height": 800,
         "minWidth": 960,
-        "minHeight": 640
+        "minHeight": 640,
+        "center": true
       }
     ],
     "security": {
@@ -33,5 +34,15 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/xlcblues/Ceres/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQxNDA4M0YzQTM4Q0VDQjQKUldTMDdJeWo4NE5BUWNsK1B0TkdhZVRRbUdVN1VHb3hQMXFld2pkVHFQdjBxOUxPMXlocHFwekIK",
+      "dialog": false
+    }
   }
 }

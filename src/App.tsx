@@ -24,11 +24,13 @@ import {
   GlassWater,
   LayoutDashboard,
   Languages,
+  Loader2,
   Monitor,
   Moon,
   NotebookPen,
   Pencil,
   Plus,
+  RefreshCw,
   Scale,
   Search,
   Send,
@@ -106,6 +108,7 @@ import {
 import { useI18n, type Language } from "./lib/i18n";
 import { sendDailyReminder } from "./lib/reminder";
 import { predictTomorrowWeight } from "./lib/prediction";
+import { FALLBACK_VERSION, useUpdater, type UpdaterState } from "./lib/updater";
 import {
   computeEntryStats,
   computeMilestones,
@@ -2761,6 +2764,9 @@ function SettingsView({
   onUnitChange,
   onGoalSaved,
   onProfileSaved,
+  updaterState,
+  onCheckUpdate,
+  onInstallUpdate,
 }: {
   goal: Goal | null;
   unit: Unit;
@@ -2768,9 +2774,43 @@ function SettingsView({
   onUnitChange: (unit: Unit) => void;
   onGoalSaved: () => void;
   onProfileSaved: () => void;
+  updaterState: UpdaterState;
+  onCheckUpdate: () => void;
+  onInstallUpdate: () => void;
 }) {
   const { preference, setPreference } = useTheme();
   const { language, setLanguage, t } = useI18n();
+  const currentVersion = updaterState.currentVersion ?? FALLBACK_VERSION;
+  const updateBusy =
+    updaterState.status === "checking" ||
+    updaterState.status === "downloading" ||
+    updaterState.status === "installing";
+  let updateStatusText = "";
+  if (updaterState.status === "checking") {
+    updateStatusText = t("settings.checkingUpdate");
+  } else if (updaterState.status === "latest") {
+    updateStatusText = t("settings.latestVersion");
+  } else if (updaterState.status === "available") {
+    updateStatusText = t("settings.updateAvailable", {
+      version: updaterState.version ?? "",
+    });
+  } else if (updaterState.status === "downloading") {
+    updateStatusText =
+      updaterState.progress && updaterState.progress > 0
+        ? t("settings.updateProgress", {
+            percent: String(updaterState.progress),
+          })
+        : t("settings.downloadingUpdate", {
+            version: updaterState.version ?? "",
+          });
+  } else if (updaterState.status === "installing") {
+    updateStatusText = t("settings.installingUpdate");
+  } else if (updaterState.status === "error") {
+    updateStatusText =
+      updaterState.message === "unsupported"
+        ? t("settings.updateNotSupported")
+        : t("settings.updateFailed");
+  }
   const LANGUAGES: { value: Language; labelKey: string }[] = [
     { value: "zh-CN", labelKey: "language.zh" },
     { value: "en-US", labelKey: "language.en" },
@@ -3062,7 +3102,7 @@ function SettingsView({
         <div className="panel-head">
           <div>
             <p className="panel-kicker">{t("settings.aboutKicker")}</p>
-            <h2>Ceres v0.2.2</h2>
+            <h2>Ceres v{currentVersion}</h2>
           </div>
           <LogoMark className="about-logo" />
         </div>
@@ -3073,11 +3113,68 @@ function SettingsView({
           </div>
           <div>
             <span>{t("settings.versionLabel")}</span>
-            <strong>v0.2.2</strong>
+            <strong>v{currentVersion}</strong>
           </div>
           <div>
             <span>{t("settings.positionLabel")}</span>
             <strong>{t("settings.positionValue")}</strong>
+          </div>
+        </div>
+        <div className="about-update">
+          <div className="about-update-row">
+            <span>{t("settings.updateLabel")}</span>
+            <span
+              className={`about-update-status${
+                updaterState.status === "error" ? " error" : ""
+              }`}
+            >
+              {updateStatusText}
+            </span>
+          </div>
+          {updaterState.status === "available" && updaterState.body ? (
+            <p className="about-update-notes">{updaterState.body}</p>
+          ) : null}
+          {updaterState.status === "downloading" ? (
+            <div
+              className={`about-update-progress${
+                updaterState.progress ? "" : " indeterminate"
+              }`}
+            >
+              <span
+                style={{ width: `${updaterState.progress ?? 38}%` }}
+              />
+            </div>
+          ) : null}
+          {updaterState.status === "error" &&
+          updaterState.message !== "unsupported" ? (
+            <p className="about-update-error">{updaterState.message}</p>
+          ) : null}
+          <div className="about-update-actions">
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={updateBusy}
+              onClick={onCheckUpdate}
+            >
+              {updaterState.status === "checking" ? (
+                <Loader2 className="ai-spin" size={14} />
+              ) : (
+                <RefreshCw size={14} />
+              )}{" "}
+              {updaterState.status === "checking"
+                ? t("settings.checkingUpdate")
+                : t("settings.checkUpdate")}
+            </button>
+            {updaterState.status === "available" ? (
+              <button
+                className="primary-button"
+                type="button"
+                disabled={updateBusy}
+                onClick={onInstallUpdate}
+              >
+                <Download size={14} /> {t("settings.downloadUpdate")}
+              </button>
+            ) : null}
           </div>
         </div>
       </section>
@@ -3478,10 +3575,7 @@ function AiView({
     <div className="ai-grid">
       <aside className="panel ai-history-panel">
         <div className="ai-history-head">
-          <div>
-            <p className="panel-kicker">{t("ai.historyKicker")}</p>
-            <h2>{t("ai.historyTitle")}</h2>
-          </div>
+          <h2>{t("ai.historyTitle")}</h2>
         </div>
         <button
           className="ai-new-chat"
@@ -3549,10 +3643,26 @@ function AiView({
         </div>
         <div className="ai-messages" ref={messagesRef}>
           {messages.length === 0 ? (
-            <div className="ai-welcome">
-              <Bot size={22} />
-              <strong>{t("ai.welcome")}</strong>
-              <span>{t("ai.welcomeDesc")}</span>
+            <div className="ai-welcome-stage">
+              <div className="ai-welcome">
+                <span className="ai-welcome-icon">
+                  <Bot size={20} />
+                </span>
+                <strong>{t("ai.welcome")}</strong>
+                <span>{t("ai.welcomeDesc")}</span>
+              </div>
+              <div className="ai-suggestions">
+                {suggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => void handleSend(suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             messages.map((message, index) => (
@@ -3640,7 +3750,7 @@ function AiView({
           }}
         >
           <textarea
-            rows={3}
+            rows={1}
             value={draft}
             placeholder={t("ai.placeholder")}
             onChange={(event) => setDraft(event.target.value)}
@@ -3652,28 +3762,20 @@ function AiView({
             }}
           />
           <button
-            className="primary-button"
+            className="ai-send-button"
             type="submit"
             disabled={sending || !draft.trim()}
+            title={t("ai.send")}
+            aria-label={t("ai.send")}
           >
-            <Send size={14} /> {sending ? t("ai.generating") : t("ai.send")}
+            {sending ? (
+              <Loader2 size={16} className="ai-spin" />
+            ) : (
+              <Send size={16} />
+            )}
           </button>
         </form>
         {error ? <p className="ai-error">{error}</p> : null}
-        {messages.length === 0 ? (
-          <div className="ai-suggestions">
-            {suggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                className="secondary-button"
-                type="button"
-                onClick={() => void handleSend(suggestion)}
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        ) : null}
       </section>
 
     </div>
@@ -3690,6 +3792,9 @@ function App() {
   const [activeView, setActiveView] = useState<View>("today");
   const contentRef = useRef<HTMLElement>(null);
   const { language, t } = useI18n();
+  const updater = useUpdater();
+  const { state: updaterState, checkNow, install: installUpdate } = updater;
+  const displayVersion = updaterState.currentVersion ?? FALLBACK_VERSION;
 
   const loadData = useCallback(async () => {
     try {
@@ -3762,7 +3867,7 @@ function App() {
           <ThemeSwitch />
           <div className="sidebar-foot">
             <LogoMark className="logo-mark" />
-            <span>{t("app.foot")}</span>
+            <span>{t("app.foot")} v{displayVersion}</span>
           </div>
         </div>
       </aside>
@@ -3852,6 +3957,9 @@ function App() {
                   onUnitChange={handleUnitChange}
                   onGoalSaved={() => void loadData()}
                   onProfileSaved={() => void loadData()}
+                  updaterState={updaterState}
+                  onCheckUpdate={() => void checkNow()}
+                  onInstallUpdate={() => void installUpdate()}
                 />
               ) : null}
             </>
