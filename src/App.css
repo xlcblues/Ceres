@@ -420,6 +420,12 @@
   letter-spacing: -0.01em;
 }
 
+.panel-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .goal-body {
   display: flex;
   align-items: center;
@@ -949,7 +955,7 @@
 .content-today .dashboard-grid {
   flex: 1;
   min-height: 0;
-  grid-template-columns: minmax(0, 1.14fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
 }
@@ -965,7 +971,14 @@
 }
 
 .content-today .energy-panel {
-  justify-content: center;
+  justify-content: flex-start;
+}
+
+.content-today .energy-panel .entry-energy-grid {
+  flex: 1;
+  min-height: 0;
+  align-content: stretch;
+  margin-bottom: 10px;
 }
 
 .content-today .week-panel .trend-body {
@@ -992,6 +1005,7 @@
 }
 
 .content-today .goal-body {
+  flex: 1;
   gap: 12px;
 }
 
@@ -1001,9 +1015,11 @@
 
 .content-today .entry-energy-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .content-today .energy-cell {
+  justify-content: center;
   padding: 7px 9px;
 }
 

@@ -1179,14 +1179,19 @@ function TodayView({
           </div>
         </section>
         <section className="panel energy-panel">
-          <div className="entry-side-head">
-            <span className="entry-side-title">
-              <Flame size={14} />
-              {t("today.energy")}
-            </span>
-            <button className="text-button" type="button" onClick={onGoRecords}>
-              {t("today.goRecord")}
-            </button>
+          <div className="panel-head">
+            <div>
+              <p className="panel-kicker">{t("today.energyKicker")}</p>
+              <h2>{t("today.energy")}</h2>
+            </div>
+            <div className="panel-head-actions">
+              <span className="panel-icon-tile">
+                <Flame size={16} />
+              </span>
+              <button className="text-button" type="button" onClick={onGoRecords}>
+                {t("today.goRecord")}
+              </button>
+            </div>
           </div>
           <div className="entry-energy-grid">
             <div className="energy-cell">

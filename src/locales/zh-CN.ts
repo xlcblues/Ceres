@@ -130,6 +130,7 @@ export const zhCN = {
     recordedToday: "今日 {value}",
     notRecorded: "今日未记录",
     energy: "今日能量",
+    energyKicker: "热量与饮水",
     goRecord: "去记录",
     intake: "摄入",
     burn: "消耗",

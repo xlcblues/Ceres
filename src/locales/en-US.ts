@@ -130,6 +130,7 @@ export const enUS = {
     recordedToday: "Today {value}",
     notRecorded: "Not recorded today",
     energy: "Energy today",
+    energyKicker: "Calories & water",
     goRecord: "Log",
     intake: "Intake",
     burn: "Burn",
