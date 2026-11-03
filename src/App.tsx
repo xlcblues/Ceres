@@ -16,6 +16,8 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  Compass,
+  Database,
   Download,
   Dumbbell,
   FileJson,
@@ -3108,34 +3110,54 @@ function SettingsView({
         ) : null}
       </section>
       <section className="panel about-panel">
-        <div className="panel-head">
-          <div>
+        <div className="about-hero">
+          <span className="about-logo-tile">
+            <LogoMark className="about-logo" />
+          </span>
+          <div className="about-brand">
             <p className="panel-kicker">{t("settings.aboutKicker")}</p>
-            <h2>Ceres v{currentVersion}</h2>
+            <h2>Ceres</h2>
+            <p className="about-tagline">{t("app.tagline")}</p>
           </div>
-          <LogoMark className="about-logo" />
+          <div className="about-build">
+            <span>{t("settings.versionLabel")}</span>
+            <strong>v{currentVersion}</strong>
+          </div>
         </div>
         <div className="about-body">
-          <div className="about-list">
-            <div>
-              <span>{t("settings.storageLabel")}</span>
-              <strong>{t("settings.storageValue")}</strong>
+          <div className="about-facts">
+            <div className="about-fact">
+              <span className="about-fact-icon">
+                <Database size={14} />
+              </span>
+              <div>
+                <strong>{t("settings.storageLabel")}</strong>
+                <span>{t("settings.storageValue")}</span>
+              </div>
             </div>
-            <div>
-              <span>{t("settings.versionLabel")}</span>
-              <strong>v{currentVersion}</strong>
-            </div>
-            <div>
-              <span>{t("settings.positionLabel")}</span>
-              <strong>{t("settings.positionValue")}</strong>
+            <div className="about-fact">
+              <span className="about-fact-icon">
+                <Compass size={14} />
+              </span>
+              <div>
+                <strong>{t("settings.positionLabel")}</strong>
+                <span>{t("settings.positionValue")}</span>
+              </div>
             </div>
           </div>
           <div className="about-update">
-            <div className="about-update-row">
-              <span>{t("settings.updateLabel")}</span>
+            <div className="about-update-head">
+              <div className="about-update-title">
+                <RefreshCw size={13} />
+                <strong>{t("settings.updateLabel")}</strong>
+              </div>
               <span
                 className={`about-update-status${
-                  updaterState.status === "error" ? " error" : ""
+                  updaterState.status === "error"
+                    ? " error"
+                    : updaterState.status === "latest"
+                      ? " success"
+                      : ""
                 }`}
               >
                 {updateStatusText}

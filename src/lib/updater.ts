@@ -7,7 +7,7 @@ import {
 } from "@tauri-apps/plugin-updater";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export const FALLBACK_VERSION = "0.2.3";
+export const FALLBACK_VERSION = "0.2.4";
 
 export type UpdaterStatus =
   | "idle"
