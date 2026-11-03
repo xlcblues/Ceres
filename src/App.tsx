@@ -2917,72 +2917,76 @@ function SettingsView({
 
   return (
     <div className="settings-grid">
-      <section className="panel">
+      <section className="panel settings-prefs-panel">
         <div className="panel-head">
           <div>
-            <p className="panel-kicker">{t("settings.uiKicker")}</p>
-            <h2>{t("settings.appearanceTitle")}</h2>
+            <p className="panel-kicker">{t("settings.preferencesKicker")}</p>
+            <h2>{t("settings.preferencesTitle")}</h2>
           </div>
           <span className="panel-icon-tile">
-            <Monitor size={16} />
+            <Settings size={16} />
           </span>
         </div>
-        <div className="segmented wide">
-          {THEME_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              className={preference === option.value ? "active" : ""}
-              onClick={() => setPreference(option.value)}
-            >
-              <option.icon size={15} />
-              {t("theme." + option.value)}
-            </button>
-          ))}
-        </div>
-      </section>
-      <section className="panel">
-        <div className="panel-head">
-          <div>
-            <p className="panel-kicker">{t("language.title")}</p>
-            <h2>{t("language.subtitle")}</h2>
+        <div className="settings-rows">
+          <div className="settings-row">
+            <span className="settings-row-icon">
+              <Monitor size={15} />
+            </span>
+            <div className="settings-row-label">
+              <strong>{t("settings.appearanceTitle")}</strong>
+            </div>
+            <div className="segmented">
+              {THEME_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  className={preference === option.value ? "active" : ""}
+                  onClick={() => setPreference(option.value)}
+                >
+                  <option.icon size={14} />
+                  {t("theme." + option.value)}
+                </button>
+              ))}
+            </div>
           </div>
-          <span className="panel-icon-tile">
-            <Languages size={16} />
-          </span>
-        </div>
-        <div className="segmented wide">
-          {LANGUAGES.map((option) => (
-            <button
-              key={option.value}
-              className={language === option.value ? "active" : ""}
-              onClick={() => setLanguage(option.value)}
-            >
-              {t(option.labelKey)}
-            </button>
-          ))}
-        </div>
-        <p className="form-hint">{t("language.hint")}</p>
-      </section>
-      <section className="panel">
-        <div className="panel-head">
-          <div>
-            <p className="panel-kicker">{t("settings.dataKicker")}</p>
-            <h2>{t("settings.unitTitle")}</h2>
+          <div className="settings-row">
+            <span className="settings-row-icon">
+              <Languages size={15} />
+            </span>
+            <div className="settings-row-label">
+              <strong>{t("language.subtitle")}</strong>
+              <span>{t("language.hint")}</span>
+            </div>
+            <div className="segmented">
+              {LANGUAGES.map((option) => (
+                <button
+                  key={option.value}
+                  className={language === option.value ? "active" : ""}
+                  onClick={() => setLanguage(option.value)}
+                >
+                  {t(option.labelKey)}
+                </button>
+              ))}
+            </div>
           </div>
-          <span className="panel-icon-tile">
-            <Scale size={16} />
-          </span>
-        </div>
-        <div className="segmented wide">
-          {UNIT_OPTIONS.map((value) => (
-            <button
-              key={value}
-              className={unit === value ? "active" : ""}
-              onClick={() => onUnitChange(value)}
-            >
-              {UNIT_LABELS[value]}
-            </button>
-          ))}
+          <div className="settings-row">
+            <span className="settings-row-icon">
+              <Scale size={15} />
+            </span>
+            <div className="settings-row-label">
+              <strong>{t("settings.unitTitle")}</strong>
+            </div>
+            <div className="segmented">
+              {UNIT_OPTIONS.map((value) => (
+                <button
+                  key={value}
+                  className={unit === value ? "active" : ""}
+                  onClick={() => onUnitChange(value)}
+                >
+                  {UNIT_LABELS[value]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
       <section className="panel">
@@ -3111,75 +3115,77 @@ function SettingsView({
           </div>
           <LogoMark className="about-logo" />
         </div>
-        <div className="about-list">
-          <div>
-            <span>{t("settings.storageLabel")}</span>
-            <strong>{t("settings.storageValue")}</strong>
-          </div>
-          <div>
-            <span>{t("settings.versionLabel")}</span>
-            <strong>v{currentVersion}</strong>
-          </div>
-          <div>
-            <span>{t("settings.positionLabel")}</span>
-            <strong>{t("settings.positionValue")}</strong>
-          </div>
-        </div>
-        <div className="about-update">
-          <div className="about-update-row">
-            <span>{t("settings.updateLabel")}</span>
-            <span
-              className={`about-update-status${
-                updaterState.status === "error" ? " error" : ""
-              }`}
-            >
-              {updateStatusText}
-            </span>
-          </div>
-          {updaterState.status === "available" && updaterState.body ? (
-            <p className="about-update-notes">{updaterState.body}</p>
-          ) : null}
-          {updaterState.status === "downloading" ? (
-            <div
-              className={`about-update-progress${
-                updaterState.progress ? "" : " indeterminate"
-              }`}
-            >
-              <span
-                style={{ width: `${updaterState.progress ?? 38}%` }}
-              />
+        <div className="about-body">
+          <div className="about-list">
+            <div>
+              <span>{t("settings.storageLabel")}</span>
+              <strong>{t("settings.storageValue")}</strong>
             </div>
-          ) : null}
-          {updaterState.status === "error" &&
-          updaterState.message !== "unsupported" ? (
-            <p className="about-update-error">{updaterState.message}</p>
-          ) : null}
-          <div className="about-update-actions">
-            <button
-              className="secondary-button"
-              type="button"
-              disabled={updateBusy}
-              onClick={onCheckUpdate}
-            >
-              {updaterState.status === "checking" ? (
-                <Loader2 className="ai-spin" size={14} />
-              ) : (
-                <RefreshCw size={14} />
-              )}{" "}
-              {updaterState.status === "checking"
-                ? t("settings.checkingUpdate")
-                : t("settings.checkUpdate")}
-            </button>
-            {updaterState.status === "available" ? (
+            <div>
+              <span>{t("settings.versionLabel")}</span>
+              <strong>v{currentVersion}</strong>
+            </div>
+            <div>
+              <span>{t("settings.positionLabel")}</span>
+              <strong>{t("settings.positionValue")}</strong>
+            </div>
+          </div>
+          <div className="about-update">
+            <div className="about-update-row">
+              <span>{t("settings.updateLabel")}</span>
+              <span
+                className={`about-update-status${
+                  updaterState.status === "error" ? " error" : ""
+                }`}
+              >
+                {updateStatusText}
+              </span>
+            </div>
+            {updaterState.status === "available" && updaterState.body ? (
+              <p className="about-update-notes">{updaterState.body}</p>
+            ) : null}
+            {updaterState.status === "downloading" ? (
+              <div
+                className={`about-update-progress${
+                  updaterState.progress ? "" : " indeterminate"
+                }`}
+              >
+                <span
+                  style={{ width: `${updaterState.progress ?? 38}%` }}
+                />
+              </div>
+            ) : null}
+            {updaterState.status === "error" &&
+            updaterState.message !== "unsupported" ? (
+              <p className="about-update-error">{updaterState.message}</p>
+            ) : null}
+            <div className="about-update-actions">
               <button
-                className="primary-button"
+                className="secondary-button"
                 type="button"
                 disabled={updateBusy}
-                onClick={onInstallUpdate}
+                onClick={onCheckUpdate}
               >
-                <Download size={14} /> {t("settings.downloadUpdate")}
+                {updaterState.status === "checking" ? (
+                  <Loader2 className="ai-spin" size={14} />
+                ) : (
+                  <RefreshCw size={14} />
+                )}{" "}
+                {updaterState.status === "checking"
+                  ? t("settings.checkingUpdate")
+                  : t("settings.checkUpdate")}
               </button>
-            ) : null}
+              {updaterState.status === "available" ? (
+                <button
+                  className="primary-button"
+                  type="button"
+                  disabled={updateBusy}
+                  onClick={onInstallUpdate}
+                >
+                  <Download size={14} /> {t("settings.downloadUpdate")}
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       </section>
@@ -3882,7 +3888,9 @@ function App() {
             ? " content-today"
             : activeView === "ai"
               ? " content-ai"
-              : ""
+              : activeView === "settings"
+                ? " content-settings"
+                : ""
         }`}
         ref={contentRef}
       >

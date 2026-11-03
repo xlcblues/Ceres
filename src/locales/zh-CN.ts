@@ -214,6 +214,8 @@ export const zhCN = {
     appearanceTitle: "外观主题",
     dataKicker: "数据",
     unitTitle: "计量单位",
+    preferencesKicker: "通用",
+    preferencesTitle: "偏好设置",
     goalKicker: "目标",
     goalTitle: "减重目标",
     bodyKicker: "身体参数",

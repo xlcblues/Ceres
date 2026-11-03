@@ -214,6 +214,8 @@ export const enUS = {
     appearanceTitle: "Appearance",
     dataKicker: "Data",
     unitTitle: "Units",
+    preferencesKicker: "General",
+    preferencesTitle: "Preferences",
     goalKicker: "Goal",
     goalTitle: "Weight goal",
     bodyKicker: "Body",
