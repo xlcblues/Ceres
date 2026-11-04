@@ -3502,8 +3502,14 @@ a:focus-visible {
 }
 
 .ai-message.user .ai-content {
-  color: var(--text-strong);
-  font-weight: 540;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--primary);
+  color: var(--primary-inverse);
+  font-weight: 520;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 .ai-markdown-wrap {

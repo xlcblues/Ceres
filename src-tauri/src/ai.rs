@@ -73,11 +73,12 @@ pub struct ChatMessage {
 pub fn chat_content(config: &AiConfig, messages: &[ChatMessage]) -> Result<String, String> {
     let base = config.base_url.trim().trim_end_matches('/');
     let url = format!("{base}/chat/completions");
-    let payload = serde_json::json!({
+    let mut payload = serde_json::json!({
         "model": config.model,
         "messages": messages,
         "temperature": 0.3,
     });
+    disable_thinking_for_siliconflow(config, &mut payload);
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(Duration::from_secs(30))
         .timeout_read(Duration::from_secs(120))
@@ -137,12 +138,13 @@ pub fn chat_content_stream(
 ) -> Result<String, String> {
     let base = config.base_url.trim().trim_end_matches('/');
     let url = format!("{base}/chat/completions");
-    let payload = serde_json::json!({
+    let mut payload = serde_json::json!({
         "model": config.model,
         "messages": messages,
         "temperature": 0.3,
         "stream": true,
     });
+    disable_thinking_for_siliconflow(config, &mut payload);
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(Duration::from_secs(30))
         .timeout_read(Duration::from_secs(300))
@@ -229,6 +231,14 @@ pub fn chat_content_stream(
             Err(format!("{hint}（{status}）：{body}"))
         }
         Err(error) => Err(format!("AI 请求失败：{error}")),
+    }
+}
+
+fn disable_thinking_for_siliconflow(config: &AiConfig, payload: &mut Value) {
+    if config.provider.eq_ignore_ascii_case("siliconflow")
+        || config.base_url.to_ascii_lowercase().contains("siliconflow")
+    {
+        payload["enable_thinking"] = Value::Bool(false);
     }
 }
 
@@ -844,6 +854,7 @@ const SYSTEM_PROMPT: &str = r#"你是 Ceres 减肥记录应用的 AI 助手。�
 
 回复规则：
 - 先用 Markdown 输出完整的回复正文，正文中不要出现 JSON。
+- 不要展示思考过程、推理过程，也不要输出“深度思考”“思考中”等前缀，直接给出最终回复。
 - 当用户要求录入数据（例如报告今天或某天的体重、吃了什么食物、做了什么运动、喝了多少水）时，在 Markdown 正文末尾再输出一个 JSON 对象，不要用 markdown 代码块包裹，格式如下：
 {"actions": [{"type": "weight", "date": "YYYY-MM-DD", "weightKg": 65.5, "bodyFat": null, "note": null}, {"type": "food", "date": "YYYY-MM-DD", "name": "食物名", "category": "主食|蛋白质|蔬菜|水果|饮品|零食|其他", "grams": 150, "kcalPer100g": 116, "protein": 2.6, "carbs": 25.9, "fat": 0.3, "unitName": "克", "unitGrams": 100}, {"type": "exercise", "date": "YYYY-MM-DD", "name": "运动名", "category": "有氧|力量|身心|球类|户外|器械|日常|其他", "minutes": 30, "met": 7.0}, {"type": "water", "date": "YYYY-MM-DD", "ml": 500}]}
 - 没有需要录入的数据时，不要输出 JSON。

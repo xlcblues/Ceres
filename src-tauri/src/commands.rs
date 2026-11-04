@@ -252,12 +252,12 @@ pub fn save_ai_config(state: State<'_, Db>, config: ai::AiConfig) -> Result<ai::
 }
 
 #[tauri::command]
-pub fn ai_chat(
+pub async fn ai_chat(
     state: State<'_, Db>,
     prompt: String,
     history: Vec<ai::ChatMessage>,
 ) -> Result<ai::AiChatResponse, String> {
-    let trimmed = prompt.trim();
+    let trimmed = prompt.trim().to_string();
     if trimmed.is_empty() {
         return Err("请输入消息".to_string());
     }
@@ -268,17 +268,21 @@ pub fn ai_chat(
         let context = ai::build_context(&conn, &ai::today())?;
         (config, context)
     };
-    ai::chat_with_context(&config, &context, trimmed, &history)
+    tauri::async_runtime::spawn_blocking(move || {
+        ai::chat_with_context(&config, &context, &trimmed, &history)
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
-pub fn ai_chat_stream(
+pub async fn ai_chat_stream(
     state: State<'_, Db>,
     prompt: String,
     history: Vec<ai::ChatMessage>,
     channel: tauri::ipc::Channel<ai::AiStreamEvent>,
 ) -> Result<ai::AiChatResponse, String> {
-    let trimmed = prompt.trim();
+    let trimmed = prompt.trim().to_string();
     if trimmed.is_empty() {
         return Err("请输入消息".to_string());
     }
@@ -289,13 +293,18 @@ pub fn ai_chat_stream(
         let context = ai::build_context(&conn, &ai::today())?;
         (config, context)
     };
-    let response = ai::chat_with_context_stream(&config, &context, trimmed, &history, |delta| {
-        channel
-            .send(ai::AiStreamEvent::Delta {
-                text: delta.to_string(),
-            })
-            .map_err(|error| error.to_string())
-    })?;
+    let stream_channel = channel.clone();
+    let response = tauri::async_runtime::spawn_blocking(move || {
+        ai::chat_with_context_stream(&config, &context, &trimmed, &history, |delta| {
+            stream_channel
+                .send(ai::AiStreamEvent::Delta {
+                    text: delta.to_string(),
+                })
+                .map_err(|error| error.to_string())
+        })
+    })
+    .await
+    .map_err(|error| error.to_string())??;
     channel
         .send(ai::AiStreamEvent::Done {
             actions: response.actions.clone(),
@@ -305,23 +314,31 @@ pub fn ai_chat_stream(
 }
 
 #[tauri::command]
-pub fn ai_estimate_food(
+pub async fn ai_estimate_food(
     state: State<'_, Db>,
     name: String,
     amount_text: Option<String>,
 ) -> Result<ai::FoodEstimate, String> {
     let config = ai_config_from_state(&state)?;
-    ai::estimate_food(&config, &name, amount_text.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        ai::estimate_food(&config, &name, amount_text.as_deref())
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
-pub fn ai_estimate_exercise(
+pub async fn ai_estimate_exercise(
     state: State<'_, Db>,
     name: String,
     duration_text: Option<String>,
 ) -> Result<ai::ExerciseEstimate, String> {
     let config = ai_config_from_state(&state)?;
-    ai::estimate_exercise(&config, &name, duration_text.as_deref())
+    tauri::async_runtime::spawn_blocking(move || {
+        ai::estimate_exercise(&config, &name, duration_text.as_deref())
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -337,9 +354,11 @@ pub fn ai_apply_actions(
 }
 
 #[tauri::command]
-pub fn test_ai_connection(state: State<'_, Db>) -> Result<String, String> {
+pub async fn test_ai_connection(state: State<'_, Db>) -> Result<String, String> {
     let config = ai_config_from_state(&state)?;
-    ai::test_connection(&config)
+    tauri::async_runtime::spawn_blocking(move || ai::test_connection(&config))
+        .await
+        .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
