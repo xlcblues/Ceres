@@ -12,6 +12,7 @@ import {
   Apple,
   Award,
   Bell,
+  BookOpen,
   Bot,
   CalendarDays,
   Check,
@@ -130,13 +131,14 @@ import {
   validateWeightInput,
 } from "./lib/validation";
 
-type View = "today" | "trend" | "records" | "ai" | "settings";
+type View = "today" | "trend" | "records" | "knowledge" | "ai" | "settings";
 type Icon = ComponentType<{ size?: number; className?: string }>;
 
 const NAV_ITEMS: { view: View; icon: Icon }[] = [
   { view: "today", icon: LayoutDashboard },
   { view: "trend", icon: TrendingUp },
   { view: "records", icon: NotebookPen },
+  { view: "knowledge", icon: BookOpen },
   { view: "ai", icon: Bot },
   { view: "settings", icon: Settings },
 ];
@@ -3815,6 +3817,71 @@ function AiView({
   );
 }
 
+const KNOWLEDGE_CARDS: { key: string; icon: Icon }[] = [
+  { key: "energy", icon: Flame },
+  { key: "eating", icon: Apple },
+  { key: "movement", icon: Dumbbell },
+  { key: "rest", icon: Moon },
+  { key: "myths", icon: Compass },
+  { key: "habit", icon: Target },
+];
+
+function KnowledgeView() {
+  const { t } = useI18n();
+  return (
+    <div className="knowledge-view">
+      <section className="panel knowledge-intro">
+        <div className="knowledge-intro-copy">
+          <p className="panel-kicker">{t("knowledge.introKicker")}</p>
+          <h2>{t("knowledge.introTitle")}</h2>
+          <p>{t("knowledge.introBody")}</p>
+        </div>
+        <div className="knowledge-highlight">
+          <BookOpen size={16} />
+          <div>
+            <strong>{t("knowledge.highlightTitle")}</strong>
+            <span>{t("knowledge.highlightBody")}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="knowledge-section">
+        <div className="knowledge-section-head">
+          <p className="panel-kicker">{t("knowledge.sectionKicker")}</p>
+          <h2>{t("knowledge.sectionTitle")}</h2>
+          <p>{t("knowledge.sectionBody")}</p>
+        </div>
+        <div className="knowledge-grid">
+          {KNOWLEDGE_CARDS.map((card) => {
+            const base = `knowledge.cards.${card.key}`;
+            return (
+              <article className="panel knowledge-card" key={card.key}>
+                <div className="knowledge-card-head">
+                  <span className="panel-icon-tile">
+                    <card.icon size={15} />
+                  </span>
+                  <h3>{t(`${base}.title`)}</h3>
+                </div>
+                <p className="knowledge-card-body">{t(`${base}.body`)}</p>
+                <ul className="knowledge-points">
+                  {[1, 2, 3].map((index) => (
+                    <li key={index}>
+                      <Check size={13} />
+                      <span>{t(`${base}.p${index}`)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <p className="knowledge-disclaimer">{t("knowledge.disclaimer")}</p>
+    </div>
+  );
+}
+
 function App() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [goal, setGoal] = useState<Goal | null>(null);
@@ -3910,6 +3977,8 @@ function App() {
             ? " content-today"
             : activeView === "ai"
               ? " content-ai"
+              : activeView === "knowledge"
+                ? " content-knowledge"
               : activeView === "settings"
                 ? " content-settings"
                 : ""
@@ -3977,6 +4046,7 @@ function App() {
                   onChanged={() => void loadData()}
                 />
               ) : null}
+              {activeView === "knowledge" ? <KnowledgeView /> : null}
               {activeView === "ai" ? (
                 <AiView
                   unit={unit}

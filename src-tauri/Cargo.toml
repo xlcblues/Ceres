@@ -1,6 +1,6 @@
 [package]
 name = "ceres"
-version = "0.2.5"
+version = "1.0.0"
 description = "Ceres weight tracking for Windows"
 authors = ["Ceres"]
 edition = "2024"
