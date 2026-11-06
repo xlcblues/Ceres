@@ -2952,6 +2952,10 @@ a:focus-visible {
   background: color-mix(in srgb, var(--bg-soft) 76%, transparent);
 }
 
+.custom-form .form-actions {
+  flex-wrap: wrap;
+}
+
 .log-list {
   display: flex;
   flex-direction: column;

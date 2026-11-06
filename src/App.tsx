@@ -1952,6 +1952,7 @@ function LifeRecorder({
     setStatus(null);
     try {
       await logFood(today, id, gramValue);
+      setFoodId("");
       setGrams("");
       setStatus({ kind: "success", text: t("life.foodLogged") });
       await load();
@@ -1983,6 +1984,7 @@ function LifeRecorder({
     setStatus(null);
     try {
       await logExercise(today, id, minuteValue, kgValue);
+      setExerciseId("");
       setMinutes("");
       setStatus({ kind: "success", text: t("life.exerciseLogged") });
       await load();
@@ -2055,6 +2057,26 @@ function LifeRecorder({
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleCloseCustomFood = () => {
+    setNewFoodName("");
+    setNewFoodCategory("");
+    setNewFoodKcal("");
+    setNewFoodUnit(t("life.unitGramDefault"));
+    setNewFoodUnitGrams("100");
+    setFoodEstimateError(null);
+    setStatus(null);
+    setCustomFoodOpen(false);
+  };
+
+  const handleCloseCustomExercise = () => {
+    setNewExerciseName("");
+    setNewExerciseCategory("");
+    setNewExerciseMet("");
+    setExerciseEstimateError(null);
+    setStatus(null);
+    setCustomExerciseOpen(false);
   };
 
   const handleAddCustomFood = async () => {
@@ -2324,6 +2346,14 @@ function LifeRecorder({
                   <button
                     className="secondary-button"
                     type="button"
+                    disabled={busy}
+                    onClick={handleCloseCustomFood}
+                  >
+                    <X size={14} /> {t("common.cancel")}
+                  </button>
+                  <button
+                    className="secondary-button"
+                    type="button"
                     disabled={busy || foodEstimating}
                     onClick={() => void handleAiEstimateFood()}
                   >
@@ -2547,6 +2577,14 @@ function LifeRecorder({
                   </div>
                 </div>
                 <div className="form-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    disabled={busy}
+                    onClick={handleCloseCustomExercise}
+                  >
+                    <X size={14} /> {t("common.cancel")}
+                  </button>
                   <button
                     className="secondary-button"
                     type="button"
