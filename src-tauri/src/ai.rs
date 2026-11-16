@@ -506,6 +506,39 @@ pub enum AiAction {
         minutes: f64,
         met: f64,
     },
+    #[serde(rename = "updateFood")]
+    UpdateFood {
+        name: String,
+        #[serde(rename = "newName", default)]
+        new_name: Option<String>,
+        #[serde(default)]
+        category: String,
+        #[serde(rename = "kcalPer100g")]
+        kcal_per_100g: f64,
+        #[serde(default)]
+        protein: Option<f64>,
+        #[serde(default)]
+        carbs: Option<f64>,
+        #[serde(default)]
+        fat: Option<f64>,
+        #[serde(rename = "unitName", default)]
+        unit_name: Option<String>,
+        #[serde(rename = "unitGrams", default)]
+        unit_grams: Option<f64>,
+    },
+    #[serde(rename = "deleteFood")]
+    DeleteFood { name: String },
+    #[serde(rename = "updateExercise")]
+    UpdateExercise {
+        name: String,
+        #[serde(rename = "newName", default)]
+        new_name: Option<String>,
+        #[serde(default)]
+        category: String,
+        met: f64,
+    },
+    #[serde(rename = "deleteExercise")]
+    DeleteExercise { name: String },
     #[serde(rename = "water")]
     Water { date: String, ml: f64 },
 }
@@ -671,6 +704,14 @@ pub struct AiApplyResult {
     pub applied: usize,
     pub created_foods: Vec<String>,
     pub created_exercises: Vec<String>,
+    #[serde(default)]
+    pub updated_foods: Vec<String>,
+    #[serde(default)]
+    pub deleted_foods: Vec<String>,
+    #[serde(default)]
+    pub updated_exercises: Vec<String>,
+    #[serde(default)]
+    pub deleted_exercises: Vec<String>,
     pub message: String,
 }
 
@@ -699,6 +740,10 @@ pub fn apply_actions(conn: &Connection, actions: &[AiAction]) -> Result<AiApplyR
     let mut applied = 0usize;
     let mut created_foods: Vec<String> = Vec::new();
     let mut created_exercises: Vec<String> = Vec::new();
+    let mut updated_foods: Vec<String> = Vec::new();
+    let mut deleted_foods: Vec<String> = Vec::new();
+    let mut updated_exercises: Vec<String> = Vec::new();
+    let mut deleted_exercises: Vec<String> = Vec::new();
 
     for action in actions {
         match action {
@@ -826,6 +871,129 @@ pub fn apply_actions(conn: &Connection, actions: &[AiAction]) -> Result<AiApplyR
                 db::log_exercise(conn, date, exercise_id, *minutes, weight_kg)
                     .map_err(|error| format!("录入运动失败：{error}"))?;
             }
+            AiAction::UpdateFood {
+                name,
+                new_name,
+                category,
+                kcal_per_100g,
+                protein,
+                carbs,
+                fat,
+                unit_name,
+                unit_grams,
+            } => {
+                let name = name.trim().to_string();
+                if name.is_empty() {
+                    return Err("食物名称不能为空".to_string());
+                }
+                if *kcal_per_100g <= 0.0 || !kcal_per_100g.is_finite() {
+                    return Err(format!("食物热量无效：{kcal_per_100g}"));
+                }
+                for macro_value in [*protein, *carbs, *fat].into_iter().flatten() {
+                    if macro_value < 0.0 || !macro_value.is_finite() {
+                        return Err("营养成分不能为负数".to_string());
+                    }
+                }
+                let foods = db::list_food_catalog(conn).map_err(|error| error.to_string())?;
+                let item = foods
+                    .iter()
+                    .find(|item| item.name == name)
+                    .ok_or_else(|| format!("食物库中没有「{name}」"))?;
+                let next_name = new_name
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or(&name);
+                let category = if category.trim().is_empty() {
+                    "其他".to_string()
+                } else {
+                    category.trim().to_string()
+                };
+                let unit_name = unit_name
+                    .as_deref()
+                    .filter(|value| !value.trim().is_empty())
+                    .unwrap_or("克");
+                let unit_grams = unit_grams.unwrap_or(100.0);
+                if unit_grams <= 0.0 || !unit_grams.is_finite() {
+                    return Err("计量单位克数必须大于 0".to_string());
+                }
+                db::update_food_catalog_item(
+                    conn,
+                    item.id,
+                    next_name,
+                    &category,
+                    *kcal_per_100g,
+                    *protein,
+                    *carbs,
+                    *fat,
+                    unit_name,
+                    unit_grams,
+                )
+                .map_err(|error| format!("修改食物失败：{error}"))?;
+                updated_foods.push(next_name.to_string());
+            }
+            AiAction::DeleteFood { name } => {
+                let name = name.trim().to_string();
+                if name.is_empty() {
+                    return Err("食物名称不能为空".to_string());
+                }
+                let foods = db::list_food_catalog(conn).map_err(|error| error.to_string())?;
+                let item = foods
+                    .iter()
+                    .find(|item| item.name == name)
+                    .ok_or_else(|| format!("食物库中没有「{name}」"))?;
+                db::delete_food_catalog_item(conn, item.id)
+                    .map_err(|error| format!("删除食物失败：{error}"))?;
+                deleted_foods.push(item.name.clone());
+            }
+            AiAction::UpdateExercise {
+                name,
+                new_name,
+                category,
+                met,
+            } => {
+                let name = name.trim().to_string();
+                if name.is_empty() {
+                    return Err("运动名称不能为空".to_string());
+                }
+                if *met <= 0.0 || *met > 20.0 || !met.is_finite() {
+                    return Err(format!("MET 值无效：{met}"));
+                }
+                let exercises =
+                    db::list_exercise_catalog(conn).map_err(|error| error.to_string())?;
+                let item = exercises
+                    .iter()
+                    .find(|item| item.name == name)
+                    .ok_or_else(|| format!("运动库中没有「{name}」"))?;
+                let next_name = new_name
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or(&name);
+                let category = if category.trim().is_empty() {
+                    "其他".to_string()
+                } else {
+                    category.trim().to_string()
+                };
+                db::update_exercise_catalog_item(conn, item.id, next_name, &category, *met)
+                    .map_err(|error| format!("修改运动失败：{error}"))?;
+                updated_exercises.push(next_name.to_string());
+            }
+            AiAction::DeleteExercise { name } => {
+                let name = name.trim().to_string();
+                if name.is_empty() {
+                    return Err("运动名称不能为空".to_string());
+                }
+                let exercises =
+                    db::list_exercise_catalog(conn).map_err(|error| error.to_string())?;
+                let item = exercises
+                    .iter()
+                    .find(|item| item.name == name)
+                    .ok_or_else(|| format!("运动库中没有「{name}」"))?;
+                db::delete_exercise_catalog_item(conn, item.id)
+                    .map_err(|error| format!("删除运动失败：{error}"))?;
+                deleted_exercises.push(item.name.clone());
+            }
             AiAction::Water { date, ml } => {
                 ensure_date(date)?;
                 if *ml < 0.0 || *ml > 10_000.0 || !ml.is_finite() {
@@ -838,11 +1006,15 @@ pub fn apply_actions(conn: &Connection, actions: &[AiAction]) -> Result<AiApplyR
         applied += 1;
     }
 
-    let message = format!("已录入 {applied} 条记录");
+    let message = format!("已处理 {applied} 条操作");
     Ok(AiApplyResult {
         applied,
         created_foods,
         created_exercises,
+        updated_foods,
+        deleted_foods,
+        updated_exercises,
+        deleted_exercises,
         message,
     })
 }
@@ -857,6 +1029,10 @@ const SYSTEM_PROMPT: &str = r#"你是 Ceres 减肥记录应用的 AI 助手。�
 - 不要展示思考过程、推理过程，也不要输出“深度思考”“思考中”等前缀，直接给出最终回复。
 - 当用户要求录入数据（例如报告今天或某天的体重、吃了什么食物、做了什么运动、喝了多少水）时，在 Markdown 正文末尾再输出一个 JSON 对象，不要用 markdown 代码块包裹，格式如下：
 {"actions": [{"type": "weight", "date": "YYYY-MM-DD", "weightKg": 65.5, "bodyFat": null, "note": null}, {"type": "food", "date": "YYYY-MM-DD", "name": "食物名", "category": "主食|蛋白质|蔬菜|水果|饮品|零食|其他", "grams": 150, "kcalPer100g": 116, "protein": 2.6, "carbs": 25.9, "fat": 0.3, "unitName": "克", "unitGrams": 100}, {"type": "exercise", "date": "YYYY-MM-DD", "name": "运动名", "category": "有氧|力量|身心|球类|户外|器械|日常|其他", "minutes": 30, "met": 7.0}, {"type": "water", "date": "YYYY-MM-DD", "ml": 500}]}
+- 当用户要求修改食物库或运动库条目时，输出如下 action（newName 仅在需要改名时填写，name 必须是食物库/运动库中已有的名称）：
+{"actions": [{"type": "updateFood", "name": "燕麦牛奶", "newName": null, "category": "饮品", "kcalPer100g": 80, "protein": 3, "carbs": 12, "fat": 2, "unitName": "杯", "unitGrams": 250}, {"type": "updateExercise", "name": "快走", "newName": null, "category": "有氧", "met": 4.5}]}
+- 当用户明确要求删除食物库或运动库条目时，输出如下 action：{"actions": [{"type": "deleteFood", "name": "燕麦牛奶"}, {"type": "deleteExercise", "name": "快走"}]}
+- 删除会连同该条目的历史记录一起删除，只有用户明确确认后才输出删除 action；修改只影响之后录入的记录，不影响历史记录。
 - 没有需要录入的数据时，不要输出 JSON。
 - 食物或运动不在库中时，仍然输出完整 action，系统会自动新建并录入。
 - 日期使用 YYYY-MM-DD 格式，默认今天。

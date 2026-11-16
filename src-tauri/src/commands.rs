@@ -152,6 +152,120 @@ pub fn create_exercise_catalog_item(
 }
 
 #[tauri::command]
+pub fn update_food_catalog_item(
+    state: State<'_, Db>,
+    id: i64,
+    name: String,
+    category: Option<String>,
+    kcal_per_100g: f64,
+    protein: Option<f64>,
+    carbs: Option<f64>,
+    fat: Option<f64>,
+    unit_name: Option<String>,
+    unit_grams: Option<f64>,
+) -> Result<FoodCatalogItem, String> {
+    if id <= 0 {
+        return Err("食物不存在".to_string());
+    }
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err("食物名称不能为空".to_string());
+    }
+    if kcal_per_100g <= 0.0 || !kcal_per_100g.is_finite() {
+        return Err("每 100g 热量必须大于 0".to_string());
+    }
+    for macro_value in [protein, carbs, fat].into_iter().flatten() {
+        if macro_value < 0.0 || !macro_value.is_finite() {
+            return Err("营养成分不能为负数".to_string());
+        }
+    }
+    let unit_grams = unit_grams.unwrap_or(100.0);
+    if unit_grams <= 0.0 || !unit_grams.is_finite() {
+        return Err("计量单位克数必须大于 0".to_string());
+    }
+    let category = category
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "其他".to_string());
+    let unit_name = unit_name
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "克".to_string());
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    db::update_food_catalog_item(
+        &conn,
+        id,
+        &name,
+        &category,
+        kcal_per_100g,
+        protein,
+        carbs,
+        fat,
+        &unit_name,
+        unit_grams,
+    )
+    .map_err(|error| catalog_error(error, "食物名称已存在"))
+}
+
+#[tauri::command]
+pub fn delete_food_catalog_item(state: State<'_, Db>, id: i64) -> Result<bool, String> {
+    if id <= 0 {
+        return Err("食物不存在".to_string());
+    }
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    let removed = db::delete_food_catalog_item(&conn, id).map_err(|error| error.to_string())?;
+    if !removed {
+        return Err("食物不存在".to_string());
+    }
+    Ok(true)
+}
+
+#[tauri::command]
+pub fn update_exercise_catalog_item(
+    state: State<'_, Db>,
+    id: i64,
+    name: String,
+    category: Option<String>,
+    met: f64,
+) -> Result<ExerciseCatalogItem, String> {
+    if id <= 0 {
+        return Err("运动不存在".to_string());
+    }
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err("运动名称不能为空".to_string());
+    }
+    if met <= 0.0 || !met.is_finite() || met > 20.0 {
+        return Err("MET 值应在 0-20 之间".to_string());
+    }
+    let category = category
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "其他".to_string());
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    db::update_exercise_catalog_item(&conn, id, &name, &category, met)
+        .map_err(|error| catalog_error(error, "运动名称已存在"))
+}
+
+#[tauri::command]
+pub fn delete_exercise_catalog_item(state: State<'_, Db>, id: i64) -> Result<bool, String> {
+    if id <= 0 {
+        return Err("运动不存在".to_string());
+    }
+    let conn = state.0.lock().map_err(|error| error.to_string())?;
+    let removed = db::delete_exercise_catalog_item(&conn, id).map_err(|error| error.to_string())?;
+    if !removed {
+        return Err("运动不存在".to_string());
+    }
+    Ok(true)
+}
+
+fn catalog_error(error: rusqlite::Error, duplicate_message: &str) -> String {
+    if error.sqlite_error_code() == Some(rusqlite::ErrorCode::ConstraintViolation) {
+        duplicate_message.to_string()
+    } else {
+        error.to_string()
+    }
+}
+
+#[tauri::command]
 pub fn log_food(
     state: State<'_, Db>,
     date: String,

@@ -541,6 +541,68 @@ pub fn create_food_catalog_item(
     })
 }
 
+fn get_food_catalog_item(conn: &Connection, id: i64) -> Result<Option<FoodCatalogItem>, rusqlite::Error> {
+    conn.query_row(
+        "SELECT id, name, category, kcal_per_100g, protein, carbs, fat, unit_name, unit_grams
+         FROM food_catalog WHERE id = ?1",
+        params![id],
+        |row| {
+            Ok(FoodCatalogItem {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category: row.get(2)?,
+                kcal_per_100g: row.get(3)?,
+                protein: row.get(4)?,
+                carbs: row.get(5)?,
+                fat: row.get(6)?,
+                unit_name: row.get(7)?,
+                unit_grams: row.get(8)?,
+            })
+        },
+    )
+    .optional()
+}
+
+pub fn update_food_catalog_item(
+    conn: &Connection,
+    id: i64,
+    name: &str,
+    category: &str,
+    kcal_per_100g: f64,
+    protein: Option<f64>,
+    carbs: Option<f64>,
+    fat: Option<f64>,
+    unit_name: &str,
+    unit_grams: f64,
+) -> Result<FoodCatalogItem, rusqlite::Error> {
+    let affected = conn.execute(
+        "UPDATE food_catalog SET
+           name = ?2, category = ?3, kcal_per_100g = ?4, protein = ?5,
+           carbs = ?6, fat = ?7, unit_name = ?8, unit_grams = ?9
+         WHERE id = ?1",
+        params![
+            id,
+            name,
+            category,
+            kcal_per_100g,
+            protein,
+            carbs,
+            fat,
+            unit_name,
+            unit_grams
+        ],
+    )?;
+    if affected == 0 {
+        return Err(rusqlite::Error::QueryReturnedNoRows);
+    }
+    get_food_catalog_item(conn, id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
+}
+
+pub fn delete_food_catalog_item(conn: &Connection, id: i64) -> Result<bool, rusqlite::Error> {
+    let affected = conn.execute("DELETE FROM food_catalog WHERE id = ?1", params![id])?;
+    Ok(affected > 0)
+}
+
 pub fn list_exercise_catalog(conn: &Connection) -> Result<Vec<ExerciseCatalogItem>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT id, name, category, met FROM exercise_catalog ORDER BY category, id",
@@ -572,6 +634,44 @@ pub fn create_exercise_catalog_item(
         category: category.to_string(),
         met,
     })
+}
+
+fn get_exercise_catalog_item(conn: &Connection, id: i64) -> Result<Option<ExerciseCatalogItem>, rusqlite::Error> {
+    conn.query_row(
+        "SELECT id, name, category, met FROM exercise_catalog WHERE id = ?1",
+        params![id],
+        |row| {
+            Ok(ExerciseCatalogItem {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category: row.get(2)?,
+                met: row.get(3)?,
+            })
+        },
+    )
+    .optional()
+}
+
+pub fn update_exercise_catalog_item(
+    conn: &Connection,
+    id: i64,
+    name: &str,
+    category: &str,
+    met: f64,
+) -> Result<ExerciseCatalogItem, rusqlite::Error> {
+    let affected = conn.execute(
+        "UPDATE exercise_catalog SET name = ?2, category = ?3, met = ?4 WHERE id = ?1",
+        params![id, name, category, met],
+    )?;
+    if affected == 0 {
+        return Err(rusqlite::Error::QueryReturnedNoRows);
+    }
+    get_exercise_catalog_item(conn, id)?.ok_or(rusqlite::Error::QueryReturnedNoRows)
+}
+
+pub fn delete_exercise_catalog_item(conn: &Connection, id: i64) -> Result<bool, rusqlite::Error> {
+    let affected = conn.execute("DELETE FROM exercise_catalog WHERE id = ?1", params![id])?;
+    Ok(affected > 0)
 }
 
 pub fn log_food(

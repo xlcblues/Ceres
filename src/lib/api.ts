@@ -369,6 +369,48 @@ export async function createFoodCatalogItem(
   return item;
 }
 
+export async function updateFoodCatalogItem(
+  input: FoodCatalogItem,
+): Promise<FoodCatalogItem> {
+  if (isTauri()) {
+    return invoke<FoodCatalogItem>("update_food_catalog_item", {
+      id: input.id,
+      name: input.name,
+      category: input.category,
+      kcalPer100g: input.kcal_per_100g,
+      protein: input.protein,
+      carbs: input.carbs,
+      fat: input.fat,
+      unitName: input.unit_name,
+      unitGrams: input.unit_grams,
+    });
+  }
+  seedCatalogs();
+  const items = readLocal<FoodCatalogItem[]>(FOOD_CATALOG_KEY, []);
+  if (items.some((item) => item.id !== input.id && item.name === input.name.trim())) {
+    throw new Error("食物名称已存在");
+  }
+  if (!items.some((item) => item.id === input.id)) {
+    throw new Error("食物不存在");
+  }
+  const next = items.map((item) => (item.id === input.id ? input : item));
+  writeLocal(FOOD_CATALOG_KEY, next);
+  return input;
+}
+
+export async function deleteFoodCatalogItem(id: number): Promise<boolean> {
+  if (isTauri()) return invoke<boolean>("delete_food_catalog_item", { id });
+  seedCatalogs();
+  const items = readLocal<FoodCatalogItem[]>(FOOD_CATALOG_KEY, []);
+  if (!items.some((item) => item.id === id)) {
+    throw new Error("食物不存在");
+  }
+  writeLocal(FOOD_CATALOG_KEY, items.filter((item) => item.id !== id));
+  const logs = readLocal<FoodLogItem[]>(FOOD_LOG_KEY, []);
+  writeLocal(FOOD_LOG_KEY, logs.filter((item) => item.food_id !== id));
+  return true;
+}
+
 export async function listExerciseCatalog(): Promise<ExerciseCatalogItem[]> {
   if (isTauri()) return invoke<ExerciseCatalogItem[]>("list_exercise_catalog");
   seedCatalogs();
@@ -394,6 +436,43 @@ export async function createExerciseCatalogItem(
   const item: ExerciseCatalogItem = { ...input, id: nextId(items) };
   writeLocal(EXERCISE_CATALOG_KEY, [...items, item]);
   return item;
+}
+
+export async function updateExerciseCatalogItem(
+  input: ExerciseCatalogItem,
+): Promise<ExerciseCatalogItem> {
+  if (isTauri()) {
+    return invoke<ExerciseCatalogItem>("update_exercise_catalog_item", {
+      id: input.id,
+      name: input.name,
+      category: input.category,
+      met: input.met,
+    });
+  }
+  seedCatalogs();
+  const items = readLocal<ExerciseCatalogItem[]>(EXERCISE_CATALOG_KEY, []);
+  if (items.some((item) => item.id !== input.id && item.name === input.name.trim())) {
+    throw new Error("运动名称已存在");
+  }
+  if (!items.some((item) => item.id === input.id)) {
+    throw new Error("运动不存在");
+  }
+  const next = items.map((item) => (item.id === input.id ? input : item));
+  writeLocal(EXERCISE_CATALOG_KEY, next);
+  return input;
+}
+
+export async function deleteExerciseCatalogItem(id: number): Promise<boolean> {
+  if (isTauri()) return invoke<boolean>("delete_exercise_catalog_item", { id });
+  seedCatalogs();
+  const items = readLocal<ExerciseCatalogItem[]>(EXERCISE_CATALOG_KEY, []);
+  if (!items.some((item) => item.id === id)) {
+    throw new Error("运动不存在");
+  }
+  writeLocal(EXERCISE_CATALOG_KEY, items.filter((item) => item.id !== id));
+  const logs = readLocal<ExerciseLogItem[]>(EXERCISE_LOG_KEY, []);
+  writeLocal(EXERCISE_LOG_KEY, logs.filter((item) => item.exercise_id !== id));
+  return true;
 }
 
 export async function logFood(
@@ -564,6 +643,27 @@ export type AiAction =
       minutes: number;
       met: number;
     }
+  | {
+      type: "updateFood";
+      name: string;
+      newName?: string | null;
+      category: string;
+      kcalPer100g: number;
+      protein?: number | null;
+      carbs?: number | null;
+      fat?: number | null;
+      unitName?: string;
+      unitGrams?: number;
+    }
+  | { type: "deleteFood"; name: string }
+  | {
+      type: "updateExercise";
+      name: string;
+      newName?: string | null;
+      category: string;
+      met: number;
+    }
+  | { type: "deleteExercise"; name: string }
   | { type: "water"; date: string; ml: number };
 
 export interface FoodEstimate {
@@ -587,6 +687,10 @@ export interface AiApplyResult {
   applied: number;
   createdFoods: string[];
   createdExercises: string[];
+  updatedFoods: string[];
+  deletedFoods: string[];
+  updatedExercises: string[];
+  deletedExercises: string[];
   message: string;
 }
 
@@ -823,6 +927,10 @@ export async function aiApplyActions(
 
   const createdFoods: string[] = [];
   const createdExercises: string[] = [];
+  const updatedFoods: string[] = [];
+  const deletedFoods: string[] = [];
+  const updatedExercises: string[] = [];
+  const deletedExercises: string[] = [];
   for (const action of actions) {
     if (action.type === "weight") {
       await upsertEntry({
@@ -869,6 +977,55 @@ export async function aiApplyActions(
         readLocal<Goal | null>(GOAL_KEY, null)?.start_weight ??
         60;
       await logExercise(action.date, exercise.id, action.minutes, latestWeight);
+    } else if (action.type === "updateFood") {
+      const catalog = readLocal<FoodCatalogItem[]>(FOOD_CATALOG_KEY, []);
+      const item = catalog.find(
+        (candidate) => candidate.name === action.name.trim(),
+      );
+      if (!item) throw new Error(`食物库中没有「${action.name}」`);
+      const nextName = action.newName?.trim() || action.name.trim();
+      await updateFoodCatalogItem({
+        id: item.id,
+        name: nextName,
+        category: action.category.trim() || item.category,
+        kcal_per_100g: action.kcalPer100g,
+        protein: action.protein ?? item.protein,
+        carbs: action.carbs ?? item.carbs,
+        fat: action.fat ?? item.fat,
+        unit_name: action.unitName?.trim() || item.unit_name,
+        unit_grams: action.unitGrams ?? item.unit_grams,
+      });
+      updatedFoods.push(nextName);
+    } else if (action.type === "deleteFood") {
+      const catalog = readLocal<FoodCatalogItem[]>(FOOD_CATALOG_KEY, []);
+      const item = catalog.find(
+        (candidate) => candidate.name === action.name.trim(),
+      );
+      if (!item) throw new Error(`食物库中没有「${action.name}」`);
+      await deleteFoodCatalogItem(item.id);
+      deletedFoods.push(item.name);
+    } else if (action.type === "updateExercise") {
+      const catalog = readLocal<ExerciseCatalogItem[]>(EXERCISE_CATALOG_KEY, []);
+      const item = catalog.find(
+        (candidate) => candidate.name === action.name.trim(),
+      );
+      if (!item) throw new Error(`运动库中没有「${action.name}」`);
+      const nextName = action.newName?.trim() || action.name.trim();
+      await updateExerciseCatalogItem({
+        id: item.id,
+        name: nextName,
+        category: action.category.trim() || item.category,
+        met: action.met,
+      });
+      updatedExercises.push(nextName);
+    } else if (action.type === "deleteExercise") {
+      const catalog = readLocal<ExerciseCatalogItem[]>(EXERCISE_CATALOG_KEY, []);
+      const item = catalog.find(
+        (candidate) => candidate.name === action.name.trim(),
+      );
+      if (!item) throw new Error(`运动库中没有「${action.name}」`);
+      await deleteExerciseCatalogItem(item.id);
+      deletedExercises.push(item.name);
     } else if (action.type === "water") {
       await upsertWater(action.date, action.ml);
     }
@@ -877,6 +1034,10 @@ export async function aiApplyActions(
     applied: actions.length,
     createdFoods,
     createdExercises,
+    updatedFoods,
+    deletedFoods,
+    updatedExercises,
+    deletedExercises,
     message: `已录入 ${actions.length} 条记录`,
   };
 }

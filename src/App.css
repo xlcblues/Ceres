@@ -2861,17 +2861,29 @@ a:focus-visible {
 .picker-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  gap: 6px;
   width: 100%;
-  padding: 10px 12px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--text);
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.picker-row-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.14s ease, border-color 0.14s ease;
 }
 
 .picker-row:hover {
@@ -2910,6 +2922,44 @@ a:focus-visible {
 
 .picker-row.active em {
   color: var(--accent-text);
+}
+
+.picker-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding-right: 10px;
+}
+
+.picker-row-actions .icon-button {
+  width: 30px;
+  height: 30px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.picker-row-actions .icon-button:hover {
+  background: var(--primary-soft);
+}
+
+.picker-delete-hint {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(201, 92, 92, 0.28);
+  border-radius: 8px;
+  background: var(--negative-soft);
+  color: var(--negative);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.catalog-editor {
+  width: min(520px, 100%);
+}
+
+.catalog-editor .life-form-grid {
+  gap: 12px;
 }
 
 .field select {

@@ -50,8 +50,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./App.css";
 import { TrendChart, canDrawGoal } from "./components/TrendChart";
+import {
+  CatalogEditor,
+  type CatalogEditTarget,
+} from "./components/CatalogEditor";
 import { useTheme, type ThemePreference } from "./theme";
 import {
+  deleteExerciseCatalogItem,
+  deleteFoodCatalogItem,
   createExerciseCatalogItem,
   createFoodCatalogItem,
   deleteEntry,
@@ -83,6 +89,8 @@ import {
   aiEstimateFood,
   upsertEntry,
   upsertWater,
+  updateExerciseCatalogItem,
+  updateFoodCatalogItem,
   AI_PROVIDERS,
   UNIT_LABELS,
   UNIT_OPTIONS,
@@ -895,6 +903,10 @@ function CatalogPicker<T extends PickerItem>({
   meta,
   onSelect,
   onClose,
+  onEdit,
+  onDelete,
+  deleteArmedId,
+  busy,
 }: {
   open: boolean;
   title: string;
@@ -905,6 +917,10 @@ function CatalogPicker<T extends PickerItem>({
   meta: (item: T) => string;
   onSelect: (id: number) => void;
   onClose: () => void;
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
+  deleteArmedId?: number | null;
+  busy?: boolean;
 }) {
   const { t } = useI18n();
   useEffect(() => {
@@ -962,20 +978,62 @@ function CatalogPicker<T extends PickerItem>({
               <div className="picker-group" key={group.category}>
                 <div className="picker-group-label">{group.category}</div>
                 {group.items.map((item) => (
-                  <button
+                  <div
                     key={item.id}
                     className={`picker-row${
                       selectedId === item.id ? " active" : ""
                     }`}
-                    type="button"
-                    onClick={() => onSelect(item.id)}
                   >
-                    <span className="picker-row-main">
-                      <strong>{item.name}</strong>
-                      <span>{item.category}</span>
-                    </span>
-                    <em>{meta(item)}</em>
-                  </button>
+                    <button
+                      className="picker-row-select"
+                      type="button"
+                      onClick={() => onSelect(item.id)}
+                    >
+                      <span className="picker-row-main">
+                        <strong>{item.name}</strong>
+                        <span>{item.category}</span>
+                      </span>
+                      <em>{meta(item)}</em>
+                    </button>
+                    {onEdit || onDelete ? (
+                      <div className="picker-row-actions">
+                        {onEdit ? (
+                          <button
+                            className="icon-button picker-action"
+                            type="button"
+                            title={t("common.edit")}
+                            aria-label={t("common.edit")}
+                            disabled={busy}
+                            onClick={() => onEdit(item)}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                        ) : null}
+                        {onDelete ? (
+                          <button
+                            className={`icon-button picker-action${
+                              deleteArmedId === item.id ? " danger armed" : ""
+                            }`}
+                            type="button"
+                            title={
+                              deleteArmedId === item.id
+                                ? t("common.confirmDelete")
+                                : t("common.delete")
+                            }
+                            aria-label={
+                              deleteArmedId === item.id
+                                ? t("common.confirmDelete")
+                                : t("common.delete")
+                            }
+                            disabled={busy}
+                            onClick={() => onDelete(item)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             ))
@@ -987,6 +1045,9 @@ function CatalogPicker<T extends PickerItem>({
             />
           )}
         </div>
+        {deleteArmedId != null ? (
+          <p className="picker-delete-hint">{t("life.deleteCatalogWarning")}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -1830,6 +1891,11 @@ function LifeRecorder({
 
   const [foodPickerOpen, setFoodPickerOpen] = useState(false);
   const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<CatalogEditTarget | null>(null);
+  const [deleteArmed, setDeleteArmed] = useState<{
+    kind: "food" | "exercise";
+    id: number;
+  } | null>(null);
 
   const [waterInput, setWaterInput] = useState("");
 
@@ -2054,6 +2120,97 @@ function LifeRecorder({
       await load();
     } catch (caught) {
       setStatus({ kind: "error", text: String(caught) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteCatalogFood = async (item: FoodCatalogItem) => {
+    if (busy) return;
+    if (
+      !deleteArmed ||
+      deleteArmed.kind !== "food" ||
+      deleteArmed.id !== item.id
+    ) {
+      setDeleteArmed({ kind: "food", id: item.id });
+      return;
+    }
+    setDeleteArmed(null);
+    setBusy(true);
+    setStatus(null);
+    try {
+      await deleteFoodCatalogItem(item.id);
+      if (foodId === String(item.id)) setFoodId("");
+      setFoodQuery("");
+      setStatus({ kind: "success", text: t("life.foodLibraryDeleted") });
+      await load();
+      onChanged();
+    } catch (caught) {
+      setStatus({ kind: "error", text: String(caught) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteCatalogExercise = async (item: ExerciseCatalogItem) => {
+    if (busy) return;
+    if (
+      !deleteArmed ||
+      deleteArmed.kind !== "exercise" ||
+      deleteArmed.id !== item.id
+    ) {
+      setDeleteArmed({ kind: "exercise", id: item.id });
+      return;
+    }
+    setDeleteArmed(null);
+    setBusy(true);
+    setStatus(null);
+    try {
+      await deleteExerciseCatalogItem(item.id);
+      if (exerciseId === String(item.id)) setExerciseId("");
+      setExerciseQuery("");
+      setStatus({ kind: "success", text: t("life.exerciseLibraryDeleted") });
+      await load();
+      onChanged();
+    } catch (caught) {
+      setStatus({ kind: "error", text: String(caught) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveCatalogEdit = async (
+    input: Omit<FoodCatalogItem, "id"> | Omit<ExerciseCatalogItem, "id">,
+  ) => {
+    if (!editTarget) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      if (editTarget.kind === "food") {
+        await updateFoodCatalogItem({
+          id: editTarget.item.id,
+          ...(input as Omit<FoodCatalogItem, "id">),
+        });
+        setStatus({
+          kind: "success",
+          text: t("life.foodLibraryUpdated", { name: input.name }),
+        });
+      } else {
+        await updateExerciseCatalogItem({
+          id: editTarget.item.id,
+          ...(input as Omit<ExerciseCatalogItem, "id">),
+        });
+        setStatus({
+          kind: "success",
+          text: t("life.exerciseLibraryUpdated", { name: input.name }),
+        });
+      }
+      setEditTarget(null);
+      await load();
+      onChanged();
+    } catch (caught) {
+      setStatus({ kind: "error", text: String(caught) });
+      throw caught;
     } finally {
       setBusy(false);
     }
@@ -2657,9 +2814,22 @@ function LifeRecorder({
         meta={(item) => `${item.kcal_per_100g} ${t("common.kcal")}/100g`}
         onSelect={(id) => {
           setFoodId(String(id));
+          setFoodQuery("");
           setFoodPickerOpen(false);
         }}
-        onClose={() => setFoodPickerOpen(false)}
+        onClose={() => {
+          setFoodQuery("");
+          setDeleteArmed(null);
+          setFoodPickerOpen(false);
+        }}
+        onEdit={(item) => {
+          setFoodPickerOpen(false);
+          setDeleteArmed(null);
+          setEditTarget({ kind: "food", item });
+        }}
+        onDelete={(item) => void handleDeleteCatalogFood(item)}
+        deleteArmedId={deleteArmed?.kind === "food" ? deleteArmed.id : null}
+        busy={busy}
       />
       <CatalogPicker
         open={exercisePickerOpen}
@@ -2671,9 +2841,32 @@ function LifeRecorder({
         meta={(item) => `MET ${item.met}`}
         onSelect={(id) => {
           setExerciseId(String(id));
+          setExerciseQuery("");
           setExercisePickerOpen(false);
         }}
-        onClose={() => setExercisePickerOpen(false)}
+        onClose={() => {
+          setExerciseQuery("");
+          setDeleteArmed(null);
+          setExercisePickerOpen(false);
+        }}
+        onEdit={(item) => {
+          setExercisePickerOpen(false);
+          setDeleteArmed(null);
+          setEditTarget({ kind: "exercise", item });
+        }}
+        onDelete={(item) => void handleDeleteCatalogExercise(item)}
+        deleteArmedId={deleteArmed?.kind === "exercise" ? deleteArmed.id : null}
+        busy={busy}
+      />
+
+      <CatalogEditor
+        target={editTarget}
+        busy={busy}
+        onSave={handleSaveCatalogEdit}
+        onClose={() => {
+          setEditTarget(null);
+          setDeleteArmed(null);
+        }}
       />
 
       {status ? (
@@ -3545,18 +3738,34 @@ function AiView({
     setError(null);
     try {
       const result = await aiApplyActions(pendingActions);
-      const created = [
+      const changes = [
         result.createdFoods.length
           ? t("ai.createdFoods", { names: result.createdFoods.join(", ") })
           : "",
         result.createdExercises.length
           ? t("ai.createdExercises", { names: result.createdExercises.join(", ") })
           : "",
+        result.updatedFoods.length
+          ? t("ai.updatedFoods", { names: result.updatedFoods.join(", ") })
+          : "",
+        result.deletedFoods.length
+          ? t("ai.deletedFoods", { names: result.deletedFoods.join(", ") })
+          : "",
+        result.updatedExercises.length
+          ? t("ai.updatedExercises", {
+              names: result.updatedExercises.join(", "),
+            })
+          : "",
+        result.deletedExercises.length
+          ? t("ai.deletedExercises", {
+              names: result.deletedExercises.join(", "),
+            })
+          : "",
       ]
         .filter(Boolean)
         .join("; ");
-      const summary = created
-        ? `${result.message}；${created}`
+      const summary = changes
+        ? `${result.message}；${changes}`
         : result.message;
       const final = [...messagesStateRef.current];
       const last = final[final.length - 1];
@@ -3609,6 +3818,18 @@ function AiView({
         minutes: action.minutes,
         met: action.met,
       });
+    }
+    if (action.type === "updateFood") {
+      return t("ai.actionUpdateFood", { name: action.name });
+    }
+    if (action.type === "deleteFood") {
+      return t("ai.actionDeleteFood", { name: action.name });
+    }
+    if (action.type === "updateExercise") {
+      return t("ai.actionUpdateExercise", { name: action.name });
+    }
+    if (action.type === "deleteExercise") {
+      return t("ai.actionDeleteExercise", { name: action.name });
     }
     return t("ai.actionWater", { date: action.date, ml: action.ml });
   };
